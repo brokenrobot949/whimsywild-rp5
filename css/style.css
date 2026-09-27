@@ -1,0 +1,202 @@
+/* Whimsywild RP5: mobile-first portrait layout, with the map on the left and panels on the right on wide screens. */
+
+:root {
+  --frame: #1f1a2b;
+  --parchment: #f3e9d2;
+  --parchment-dark: #e6d8b6;
+  --card: #fffaf0;
+  --ink: #2e2433;
+  --ink-soft: #7a6a5e;
+  --accent: #b8483a;
+  --gold: #d9aa3c;
+  --leaf: #4e7d33;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+
+html, body { height: 100%; margin: 0; }
+
+body {
+  overflow: hidden;
+  background: var(--frame);
+  color: var(--ink);
+  font: 16px/1.4 Georgia, "Times New Roman", serif;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+}
+
+/* ---- Map ---- */
+
+#map-pane {
+  flex: 0 0 55%;
+  min-height: 0;
+  background: #16131f;
+}
+
+#map {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+
+/* ---- Hero strip and log ---- */
+
+#side {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--parchment);
+  border-top: 3px solid var(--gold);
+}
+
+#hero-strip {
+  padding: 10px 16px 8px;
+  background: var(--parchment-dark);
+  border-bottom: 1px solid rgba(46, 36, 51, 0.2);
+}
+
+#hero-name { font-size: 1.1rem; font-weight: bold; }
+#hero-facts { font-size: 0.9rem; }
+#hero-status { font-size: 0.85rem; font-style: italic; color: var(--ink-soft); }
+
+#log {
+  flex: 1 1 auto;
+  margin: 0;
+  padding: 6px 16px calc(16px + env(safe-area-inset-bottom));
+  overflow-y: auto;
+  list-style: none;
+  font-size: 0.95rem;
+}
+
+#log li {
+  padding: 5px 0;
+  border-bottom: 1px dotted rgba(46, 36, 51, 0.18);
+  animation: log-in 0.4s ease-out;
+}
+
+#log .stamp { margin-right: 0.2em; color: var(--ink-soft); font-variant: small-caps; }
+#log .log-milestone { color: var(--leaf); }
+#log .log-start,
+#log .log-end { color: var(--accent); font-weight: bold; }
+
+@keyframes log-in {
+  from { opacity: 0; transform: translateY(-4px); }
+}
+
+/* ---- Cards (slide up over the log) ---- */
+
+#card-layer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+  background: rgba(31, 26, 43, 0.35);
+}
+
+.card {
+  width: 100%;
+  max-width: 420px;
+  padding: 16px 18px;
+  background: var(--card);
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  box-shadow: 0 6px 0 rgba(0, 0, 0, 0.25);
+  animation: card-up 0.3s ease-out;
+}
+
+.card h2 { margin: 0 0 6px; font-size: 1.2rem; }
+.card p { margin: 0 0 14px; }
+
+.card button {
+  width: 100%;
+  padding: 12px;
+  font: inherit;
+  font-weight: bold;
+  color: var(--ink);
+  background: var(--gold);
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.card button:hover { filter: brightness(1.08); }
+
+@keyframes card-up {
+  from { opacity: 0; transform: translateY(40px); }
+}
+
+/* ---- Wide screens: map on the left, panels on the right ---- */
+
+@media (min-width: 800px) and (min-aspect-ratio: 1/1) {
+  #app { flex-direction: row; }
+  #map-pane { flex: 1 1 auto; }
+  #side { flex: 0 0 400px; border-top: 0; border-left: 3px solid var(--gold); }
+}
+
+/* ---- Debug panel (?debug) ---- */
+
+#debug {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 10;
+  width: min(360px, calc(100vw - 16px));
+  max-height: calc(100vh - 16px);
+  padding: 6px 10px;
+  overflow: auto;
+  color: #eee;
+  background: rgba(20, 16, 28, 0.92);
+  border-radius: 6px;
+  font: 12px/1.5 Consolas, ui-monospace, monospace;
+}
+
+#debug:not([open]) { width: auto; }
+#debug summary { font-weight: bold; cursor: pointer; }
+#debug h3 { margin: 10px 0 2px; font-size: 12px; }
+#debug p { margin: 2px 0; }
+#debug a { color: #9cd3ff; }
+#debug .debug-row { margin: 6px 0; }
+#debug .debug-note { color: #aaa; }
+
+#debug button {
+  margin-right: 4px;
+  padding: 2px 8px;
+  font: inherit;
+  color: #eee;
+  background: #3a3444;
+  border: 1px solid #777;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+#debug button.active { color: #000; background: var(--gold); }
+
+#debug table { width: 100%; margin-top: 4px; border-collapse: collapse; }
+#debug th, #debug td { padding: 1px 6px 1px 0; text-align: left; white-space: nowrap; }
+#debug td:nth-child(2) { max-width: 130px; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---- Error box ---- */
+
+#error {
+  position: fixed;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 20;
+  padding: 12px 16px;
+  color: #fff;
+  background: #7a1f1f;
+  font: 14px/1.4 Consolas, ui-monospace, monospace;
+  white-space: pre-wrap;
+}
