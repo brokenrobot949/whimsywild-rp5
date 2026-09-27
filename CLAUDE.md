@@ -55,6 +55,7 @@ whimsywild-rp5/
 ## Art and audio
 
 - Art: Kenney CC0 pixel-art packs from one family (such as the Tiny series). Rob downloads the packs and adds the files to `assets/`. For monsters without a matching sprite, reuse existing sprites with recolors or tints.
+- Sheets in use (listed in `data/art.js`): `assets/tiles/tiny-town.png` (Kenney Tiny Town), `assets/sprites/tiny-dungeon.png` (Kenney Tiny Dungeon) and `assets/sprites/tiny-creatures.png` (Tiny Creatures by Clint Bellanger, CC0, made to match Tiny Dungeon). Each is a packed grid of 16 × 16 pictures with no gaps.
 - Audio (Phase 3): MP3 files only. Start audio only after the player's first tap. Include mute plus separate music and effects volume, saved under the `whimsywild-rp5:` key prefix.
 
 ## Tone and writing

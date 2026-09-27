@@ -1,20 +1,26 @@
 // Draws the world map on the canvas: terrain, places, the road ahead and the hero.
 // Tiles are 16 × 16 pixels, scaled up by a whole number so the pixel art stays crisp,
-// and only the tiles in view are drawn. Until the Kenney art is added, the tiles and
-// the hero are simple placeholder drawings made here in code.
+// and only the tiles in view are drawn. The pictures come from the art sheets in data/art.js.
 import { terrain } from '../../data/terrain.js';
-import { createRng } from './rng.js';
+import { heroSprite } from '../../data/art.js';
+import { monsters } from '../../data/monsters.js';
+import { classes } from '../../data/classes.js';
+import { TILE, picture, recolorSheet } from './art.js';
 
-const TILE = 16;
-const TILES_ACROSS = 12; // roughly how many tiles fit across the map view
-const VARIANTS = 3;      // placeholder look-alikes per terrain, so fields don't look stamped
+const TILES_ACROSS = 12;    // roughly how many tiles fit across the map view
 const BACKGROUND = '#16131f';
+const LUNGE_SECONDS = 0.15; // how long a fighter leans in when striking (game time)
+const LUNGE_PIXELS = 3;     // how far they lean, in art pixels
 
-export function createMapView(canvas, world) {
+export function createMapView(canvas, world, art) {
   const ctx = canvas.getContext('2d');
-  const tiles = makePlaceholderTiles();
-  const heroSprite = makeSprite(HERO_PIXELS, HERO_COLORS);
-  const flagSprite = makeSprite(FLAG_PIXELS, FLAG_COLORS);
+  const plan = planTiles(world, art);
+  const heroLook = picture(art, heroSprite.sheet, heroSprite.tile, 'The hero'); // before choosing a class
+  const markers = world.places
+    .filter((place) => place.sprite)
+    .map((place) => ({ place, look: picture(art, place.sprite.sheet, place.sprite.tile, place.name) }));
+  const monsterLooks = new Map(monsters.map((kind) => [kind, picture(art, kind.sprite.sheet, kind.sprite.tile, kind.name)]));
+  const classLooks = new Map(classes.map((option) => [option.id, picture(art, option.sprite.sheet, option.sprite.tile, `The class "${option.name}"`)]));
   let scale = 1;
 
   function fit() {
@@ -29,13 +35,18 @@ export function createMapView(canvas, world) {
   // `leftover` is game time not yet simulated, used to glide the hero smoothly between steps.
   function draw(life, leftover) {
     const size = TILE * scale;
+    const blit = (look, x, y) => ctx.drawImage(look.image, look.sx, look.sy, TILE, TILE, x, y, size, size);
+    const drawShadow = (x, y) => {
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
+      ctx.fillRect(x + 4 * scale, y + 14 * scale, 8 * scale, 2 * scale);
+    };
     ctx.imageSmoothingEnabled = false;
     ctx.fillStyle = BACKGROUND;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    const hero = heroPosition(life, leftover);
-    const camX = cameraOffset(hero.x, world.width, size, canvas.width);
-    const camY = cameraOffset(hero.y, world.height, size, canvas.height);
+    const heroAt = heroPosition(life, leftover);
+    const camX = cameraOffset(heroAt.x, world.width, size, canvas.width);
+    const camY = cameraOffset(heroAt.y, world.height, size, canvas.height);
     const firstCol = Math.max(0, Math.floor(camX / size));
     const lastCol = Math.min(world.width - 1, Math.floor((camX + canvas.width) / size));
     const firstRow = Math.max(0, Math.floor(camY / size));
@@ -44,8 +55,14 @@ export function createMapView(canvas, world) {
 
     for (let y = firstRow; y <= lastRow; y++) {
       for (let x = firstCol; x <= lastCol; x++) {
-        const looks = tiles[world.tiles[y * world.width + x]];
-        ctx.drawImage(looks[(x * 7 + y * 13) % VARIANTS], x * size - camX, y * size - camY, size, size);
+        for (const look of plan[y * world.width + x].ground) blit(look, x * size - camX, y * size - camY);
+      }
+    }
+    // Tall things like roofs reach into the square above, so they go on top of the ground,
+    // including for the row just below the view.
+    for (let y = firstRow; y <= Math.min(world.height - 1, lastRow + 1); y++) {
+      for (let x = firstCol; x <= lastCol; x++) {
+        for (const look of plan[y * world.width + x].above) blit(look, x * size - camX, (y - 1) * size - camY);
       }
     }
 
@@ -57,10 +74,8 @@ export function createMapView(canvas, world) {
       ctx.fillRect(spot.x * size - camX + 7 * scale, spot.y * size - camY + 7 * scale, 2 * scale, 2 * scale);
     }
 
-    for (const place of world.places) {
-      if (place.kind === 'landmark' && inView(place.x, place.y)) {
-        ctx.drawImage(flagSprite, place.x * size - camX, place.y * size - camY, size, size);
-      }
+    for (const { place, look } of markers) {
+      if (inView(place.x, place.y)) blit(look, place.x * size - camX, place.y * size - camY);
     }
 
     const labelSize = Math.round(size * 0.34);
@@ -79,15 +94,103 @@ export function createMapView(canvas, world) {
       ctx.fillText(place.name, labelX, labelY);
     }
 
-    const heroX = Math.round(hero.x * size - camX);
-    const heroY = Math.round(hero.y * size - camY);
-    const bob = hero.moving && hero.progress < 0.5 ? scale : 0;
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.25)';
-    ctx.fillRect(heroX + 4 * scale, heroY + 14 * scale, 8 * scale, 2 * scale);
-    ctx.drawImage(heroSprite, heroX, heroY - bob, size, size);
+    // In a fight, the monster stands on the next tile and each fighter leans in as they strike.
+    const { fight } = life;
+    let heroLunge = { x: 0, y: 0 };
+    if (fight) {
+      const toward = { x: Math.sign(fight.x - life.hero.x), y: Math.sign(fight.y - life.hero.y) };
+      const blow = fight.lastBlow;
+      const lunging = blow && fight.elapsed + leftover - blow.at < LUNGE_SECONDS;
+      const lean = LUNGE_PIXELS * scale;
+      if (lunging && blow.by === 'hero') heroLunge = { x: toward.x * lean, y: toward.y * lean };
+      const monsterLunge = lunging && blow.by === 'monster' ? { x: -toward.x * lean, y: -toward.y * lean } : { x: 0, y: 0 };
+      const monsterX = fight.x * size - camX + monsterLunge.x;
+      const monsterY = fight.y * size - camY + monsterLunge.y;
+      drawShadow(monsterX, monsterY);
+      blit(monsterLooks.get(fight.monster.kind), monsterX, monsterY);
+    }
+
+    const hero = life.hero.class ? classLooks.get(life.hero.class) : heroLook;
+    const heroX = Math.round(heroAt.x * size - camX) + heroLunge.x;
+    const heroY = Math.round(heroAt.y * size - camY) + heroLunge.y;
+    if (life.ending?.kind === 'died') {
+      // Fallen: the hero lies on their side.
+      ctx.save();
+      ctx.translate(heroX + size / 2, heroY + size / 2);
+      ctx.rotate(-Math.PI / 2);
+      blit(hero, -size / 2, -size / 2);
+      ctx.restore();
+      return;
+    }
+    const bob = heroAt.moving && heroAt.progress < 0.5 ? scale : 0;
+    drawShadow(heroX, heroY);
+    blit(hero, heroX, heroY - bob);
   }
 
   return { draw };
+}
+
+// Works out, once, which pictures draw each square of the map:
+// `ground` pictures in the square itself, and `above` pictures in the square above it.
+function planTiles(world, art) {
+  const recolored = new Map();
+  const idAt = (x, y) => (x < 0 || y < 0 || x >= world.width || y >= world.height ? null : world.tiles[y * world.width + x]);
+
+  function look(id, tile) {
+    const type = terrain[id];
+    const owner = `The terrain "${id}" in data/terrain.js`;
+    const found = picture(art, type.sheet, tile, owner);
+    if (!type.recolor) return found;
+    if (!recolored.has(id)) recolored.set(id, recolorSheet(found.image, type.recolor, owner));
+    return { ...found, image: recolored.get(id) };
+  }
+
+  // Picks the edge picture that fits the neighbors, or one of the plain pictures.
+  // Squares off the edge of the map count as the same terrain, so forests and rivers run off it.
+  function chooseTile(id, x, y) {
+    const type = terrain[id];
+    if (type.edges) {
+      const same = (dx, dy) => {
+        const other = idAt(x + dx, y + dy);
+        return other === null || other === id || (type.joins ?? []).includes(other);
+      };
+      const west = same(-1, 0);
+      const east = same(1, 0);
+      const north = same(0, -1);
+      const south = same(0, 1);
+      if ((west || east) && (north || south)) {
+        const column = !west ? 0 : !east ? 2 : 1;
+        const row = !north ? 0 : !south ? 2 : 1;
+        return type.edges[row * 3 + column];
+      }
+    }
+    return type.tiles[variety(x, y) % type.tiles.length];
+  }
+
+  function groundLayers(id, x, y) {
+    const type = terrain[id];
+    const layers = type.under ? groundLayers(type.under, x, y) : [];
+    layers.push(look(id, chooseTile(id, x, y)));
+    return layers;
+  }
+
+  return world.tiles.map((id, i) => {
+    const x = i % world.width;
+    const y = Math.floor(i / world.width);
+    const type = terrain[id];
+    const pairIndex = variety(x, y) % type.tiles.length;
+    return {
+      ground: groundLayers(id, x, y),
+      above: type.above ? [look(id, type.above[pairIndex % type.above.length])] : [],
+    };
+  });
+}
+
+// A steady jumble of numbers from a map position, so each square always picks the same picture.
+function variety(x, y) {
+  let h = Math.imul(x, 374761393) + Math.imul(y, 668265263);
+  h = Math.imul(h ^ (h >>> 13), 1274126177);
+  return (h ^ (h >>> 16)) >>> 0;
 }
 
 // Where the hero is, in tiles (fractions while walking between two tiles).
@@ -111,171 +214,3 @@ function cameraOffset(heroTile, tilesLong, size, viewLong) {
   const ideal = (heroTile + 0.5) * size - viewLong / 2;
   return Math.round(Math.min(Math.max(ideal, 0), mapLong - viewLong));
 }
-
-// ---- Placeholder art ----
-
-function makePlaceholderTiles() {
-  const rng = createRng(20260927); // fixed seed, so the map looks the same every time
-  const result = {};
-  for (const [id, type] of Object.entries(terrain)) {
-    result[id] = Array.from({ length: VARIANTS }, () => paintTile(type, rng));
-  }
-  return result;
-}
-
-function paintTile(type, rng) {
-  const canvas = document.createElement('canvas');
-  canvas.width = TILE;
-  canvas.height = TILE;
-  const g = canvas.getContext('2d');
-  const px = (x, y, w, h, color) => {
-    g.fillStyle = color;
-    g.fillRect(x, y, w, h);
-  };
-  // Draws a shape given as rows of [y, fromX, toX], optionally with a 1-pixel outline.
-  const shape = (rows, dx, color, outline) => {
-    if (outline) {
-      for (const [ox, oy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) {
-        for (const [y, from, to] of rows) px(from + dx + ox, y + oy, to - from + 1, 1, outline);
-      }
-    }
-    for (const [y, from, to] of rows) px(from + dx, y, to - from + 1, 1, color);
-  };
-
-  px(0, 0, TILE, TILE, type.color);
-  const detail = type.detail;
-
-  switch (type.pattern) {
-    case 'speckle':
-      for (let i = 0; i < 7; i++) px(rng.int(0, 15), rng.int(0, 14), 1, 2, detail);
-      break;
-
-    case 'flowers':
-      for (let i = 0; i < 5; i++) px(rng.int(0, 15), rng.int(0, 14), 1, 2, shade(type.color, -0.2));
-      for (let i = 0; i < 3; i++) {
-        const x = rng.int(1, 14);
-        const y = rng.int(1, 14);
-        const petal = rng.chance(0.5) ? '#fdf6e3' : '#f4a6c0';
-        px(x - 1, y, 3, 1, petal);
-        px(x, y - 1, 1, 3, petal);
-        px(x, y, 1, 1, detail);
-      }
-      break;
-
-    case 'tree': {
-      const dx = rng.int(-1, 1);
-      px(4 + dx, 13, 8, 2, shade(type.color, -0.3));
-      px(7 + dx, 9, 2, 5, '#6b4a2f');
-      const canopy = [[1, 6, 9], [2, 4, 11], [3, 3, 12], [4, 3, 12], [5, 3, 12], [6, 3, 12], [7, 4, 11], [8, 5, 10]];
-      shape(canopy, dx, detail, shade(detail, -0.45));
-      px(5 + dx, 3, 2, 2, shade(detail, 0.3));
-      px(4 + dx, 5, 1, 1, shade(detail, 0.3));
-      break;
-    }
-
-    case 'hills': {
-      const dx = rng.int(-2, 2);
-      const mound = [[6, 6, 9], [7, 5, 10], [8, 4, 11], [9, 3, 12], [10, 2, 13], [11, 2, 13]];
-      shape(mound, dx, detail, shade(detail, -0.35));
-      px(6 + dx, 6, 3, 1, shade(detail, 0.35));
-      px(5 + dx, 7, 1, 1, shade(detail, 0.35));
-      break;
-    }
-
-    case 'waves':
-      for (let i = 0; i < 3; i++) {
-        const x = rng.int(0, 11);
-        const y = rng.int(2, 14);
-        px(x, y, 2, 1, detail);
-        px(x + 2, y - 1, 2, 1, detail);
-      }
-      break;
-
-    case 'planks':
-      for (let x = 1; x < TILE; x += 4) px(x, 0, 1, TILE, detail);
-      px(0, 0, TILE, 2, shade(type.color, -0.35));
-      px(0, 14, TILE, 2, shade(type.color, -0.35));
-      break;
-
-    case 'house': {
-      for (let i = 0; i < 4; i++) px(rng.int(0, 15), rng.int(12, 14), 1, 2, shade(type.color, -0.2));
-      px(2, 6, 12, 9, '#3b2f2f');
-      px(3, 7, 10, 7, '#ecdcb4');
-      const roof = [[2, 6, 9], [3, 5, 10], [4, 4, 11], [5, 3, 12], [6, 2, 13]];
-      shape(roof, 0, detail, '#3b2f2f');
-      px(7, 10, 2, 4, '#6b4a2f');
-      px(4, 9, 2, 2, '#8fc3ea');
-      px(10, 9, 2, 2, '#8fc3ea');
-      break;
-    }
-
-    default:
-      break;
-  }
-  return canvas;
-}
-
-// Lightens (amount above 0) or darkens (amount below 0) a #rrggbb color.
-function shade(hex, amount) {
-  const n = parseInt(hex.slice(1), 16);
-  const channel = (c) => Math.round(amount < 0 ? c * (1 + amount) : c + (255 - c) * amount);
-  return `rgb(${channel(n >> 16)}, ${channel((n >> 8) & 255)}, ${channel(n & 255)})`;
-}
-
-function makeSprite(rows, colors) {
-  const canvas = document.createElement('canvas');
-  canvas.width = TILE;
-  canvas.height = TILE;
-  const g = canvas.getContext('2d');
-  rows.forEach((row, y) => {
-    [...row].forEach((key, x) => {
-      if (!colors[key]) return;
-      g.fillStyle = colors[key];
-      g.fillRect(x, y, 1, 1);
-    });
-  });
-  return canvas;
-}
-
-// A little hooded adventurer. Each letter is one pixel; dots are see-through.
-const HERO_PIXELS = [
-  '................',
-  '......oooo......',
-  '.....orrrro.....',
-  '....orrrrrro....',
-  '....oossssoo....',
-  '.....okssko.....',
-  '.....osssso.....',
-  '....obbbbbbo....',
-  '...obbbbbbbbo...',
-  '...osbbbbbbso...',
-  '....obyyyybo....',
-  '....obbbbbbo....',
-  '.....ollllo.....',
-  '.....ol..lo.....',
-  '....ooo..ooo....',
-];
-const HERO_COLORS = {
-  o: '#2b2135', // outline
-  r: '#c8483a', // hood
-  s: '#f2c9a0', // skin
-  k: '#2b2135', // eyes
-  b: '#3f6fb5', // tunic
-  y: '#8a5a2b', // belt
-  l: '#6b4a2f', // legs
-};
-
-// A pennant on a pole, marking a landmark.
-const FLAG_PIXELS = [
-  '................',
-  '..........o.....',
-  '......rrrro.....',
-  '.......rrro.....',
-  '........rro.....',
-  '.........ro.....',
-  '..........o.....',
-  '..........o.....',
-  '..........o.....',
-  '.........ooo....',
-];
-const FLAG_COLORS = { o: '#3b2f2f', r: '#e04a3a' };

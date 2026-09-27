@@ -61,11 +61,13 @@ export const retireLines = [
   'settled in {town} to tell long stories to short children.',
 ];
 
-// What the hero strip says the hero is doing.
+// What the hero strip says the hero is doing. {a} is a monster, like "a Grumpy Badger".
 export const statusLines = {
   walking: 'Walking to {place}',
   resting: 'Resting at {place}',
+  fighting: 'Fighting {a}',
   retired: 'Retired to {town}',
+  died: 'Fell to {a}',
 };
 
 // The cards shown before and after each life.

@@ -23,26 +23,34 @@ export function createRng(seed) {
     next,
     int: (min, max) => min + Math.floor(next() * (max - min + 1)),
     pick: (list) => list[Math.floor(next() * list.length)],
+    // Picks from a list where some items are more likely than others.
+    pickWeighted(list, weightOf) {
+      const total = list.reduce((sum, item) => sum + weightOf(item), 0);
+      let roll = next() * total;
+      for (const item of list) {
+        roll -= weightOf(item);
+        if (roll < 0) return item;
+      }
+      return list[list.length - 1];
+    },
     chance: (probability) => next() < probability,
     get state() { return state; },
   };
 }
 
-// Deals items in shuffled order with no repeats until every item has been used,
-// then reshuffles. Keeps log lines from repeating too soon.
-export function createDeck(rng, items) {
-  let pile = [];
-  let last;
-  return function draw() {
-    if (pile.length === 0) {
-      pile = shuffle(rng, [...items]);
-      // Don't deal the same item twice in a row across a reshuffle.
-      const top = pile.length - 1;
-      if (top > 0 && pile[top] === last) [pile[0], pile[top]] = [pile[top], pile[0]];
-    }
-    last = pile.pop();
-    return last;
-  };
+// Draws from a deck of `size` items: they come in shuffled order with no repeats until
+// every item has been used, then the deck reshuffles. Keeps log lines from repeating too soon.
+// The deck is plain data ({ pile, last }) so it can be saved. Returns the drawn item's position.
+export function drawFromDeck(rng, deck, size) {
+  // Reshuffle when empty, or if the list got shorter since the deck was made (after a data edit).
+  if (deck.pile.length === 0 || deck.pile.some((index) => index >= size)) {
+    deck.pile = shuffle(rng, Array.from({ length: size }, (_, index) => index));
+    // Don't deal the same item twice in a row across a reshuffle.
+    const top = deck.pile.length - 1;
+    if (top > 0 && deck.pile[top] === deck.last) [deck.pile[0], deck.pile[top]] = [deck.pile[top], deck.pile[0]];
+  }
+  deck.last = deck.pile.pop();
+  return deck.last;
 }
 
 function shuffle(rng, list) {

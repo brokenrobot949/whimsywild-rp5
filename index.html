@@ -35,23 +35,69 @@
   <main id="app">
     <section id="map-pane">
       <canvas id="map" aria-label="World map"></canvas>
+      <div id="encounter" hidden>
+        <canvas id="encounter-sprite" width="16" height="16"></canvas>
+        <div class="encounter-info">
+          <div id="encounter-name"></div>
+          <div class="bar"><div id="encounter-hp" class="fill"></div></div>
+          <div id="encounter-note"></div>
+        </div>
+      </div>
     </section>
     <section id="side">
-      <header id="hero-strip">
-        <div id="hero-name"></div>
-        <div id="hero-facts">Level <b id="hero-level"></b> · Age <b id="hero-age"></b> · <span id="hero-season"></span></div>
-        <div id="hero-status"></div>
-      </header>
-      <ol id="log"></ol>
+      <div class="panel" id="panel-adventure">
+        <header id="hero-strip">
+          <div id="hero-name"></div>
+          <div id="hero-facts"><span id="hero-class"></span>Level <b id="hero-level"></b> · Age <b id="hero-age"></b> · <span id="hero-season"></span></div>
+          <div class="bar hp-bar" title="Hit points"><div id="hero-hp" class="fill"></div><span id="hero-hp-text"></span></div>
+          <div class="bar xp-bar" title="Experience towards the next level"><div id="hero-xp" class="fill"></div></div>
+          <div id="hero-status"></div>
+        </header>
+        <ol id="log"></ol>
+      </div>
+      <div class="panel scroll" id="panel-hero" hidden></div>
+      <div class="panel scroll" id="panel-chronicle" hidden></div>
+      <div class="panel scroll" id="panel-hall" hidden></div>
       <div id="card-layer" hidden>
         <div class="card" role="dialog" aria-labelledby="card-title">
           <h2 id="card-title"></h2>
           <p id="card-body"></p>
-          <button type="button" id="card-button"></button>
+          <div id="card-options"></div>
+          <label id="card-auto" hidden><input type="checkbox" id="card-auto-box"> <span id="card-auto-text"></span></label>
         </div>
       </div>
     </section>
   </main>
+
+  <nav id="tabs" aria-label="Screens">
+    <button type="button" data-tab="adventure" aria-current="page">Adventure</button>
+    <button type="button" data-tab="hero">Hero</button>
+    <button type="button" data-tab="chronicle">Chronicle</button>
+    <button type="button" data-tab="hall">Hall of Champions</button>
+    <button type="button" id="open-settings" aria-label="Settings" title="Settings">&#9881;</button>
+  </nav>
+
+  <div id="settings" hidden>
+    <div class="sheet" role="dialog" aria-labelledby="settings-title">
+      <h2 id="settings-title">Settings</h2>
+      <label class="setting"><input type="checkbox" id="setting-auto"> Auto-decide choices</label>
+      <p class="hint">The hero makes each skill and class choice after a short pause, by their tags.</p>
+
+      <h3>Back up your progress</h3>
+      <p class="hint">Your progress lives in this browser only. Clearing site data erases it. Copy this save code somewhere safe to back it up, or to move it to another device.</p>
+      <button type="button" id="save-copy">Copy save code</button>
+      <textarea id="save-code" rows="3" readonly hidden aria-label="Your save code"></textarea>
+
+      <h3>Load a save code</h3>
+      <textarea id="save-paste" rows="3" placeholder="Paste a save code here" aria-label="Save code to load"></textarea>
+      <button type="button" id="save-load">Load this save</button>
+      <p id="save-message" role="status"></p>
+
+      <p class="credits">Art: Tiny Town and Tiny Dungeon by Kenney (kenney.nl). Tiny Creatures by Clint Bellanger. All CC0.</p>
+      <button type="button" id="settings-close" class="primary">Close</button>
+    </div>
+  </div>
+
   <details id="debug" hidden></details>
   <div id="error" role="alert" hidden></div>
 </body>

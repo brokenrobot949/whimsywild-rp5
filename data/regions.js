@@ -36,11 +36,12 @@ export const regions = {
 //   name        the label shown on the map
 //   logName     how the log names it in a sentence, e.g. 'the Old Mill'
 //   ground      the terrain under the place (from terrain.js)
+//   sprite      the picture that marks the place on the map (optional; see art.js)
 //   arriveLines one is picked each time a hero arrives
 export const places = [
   {
     mark: '1', kind: 'town', region: 'tailwoods',
-    name: 'Tailsend', logName: 'Tailsend', ground: 'houses',
+    name: 'Tailsend', logName: 'Tailsend', ground: 'road',
     arriveLines: [
       'returned to Tailsend. The inn still smelled of onions, happily.',
       'wandered back into Tailsend for a hot meal and a warm bed.',
@@ -50,6 +51,7 @@ export const places = [
   {
     mark: '2', kind: 'landmark', region: 'tailwoods',
     name: 'Old Mill', logName: 'the Old Mill', ground: 'meadow',
+    sprite: { sheet: 'town', tile: 93 }, // a hay bale
     arriveLines: [
       'reached the Old Mill. The wheel turned, somewhat reluctantly.',
       'rested at the Old Mill and was mistaken for a sack of flour.',
@@ -58,6 +60,7 @@ export const places = [
   {
     mark: '3', kind: 'landmark', region: 'tailwoods',
     name: 'Mossy Stones', logName: 'the Mossy Stones', ground: 'meadow',
+    sprite: { sheet: 'dungeon', tile: 65 }, // a standing stone
     arriveLines: [
       'found the Mossy Stones. They were mossier than advertised.',
       'counted the Mossy Stones twice and got two different answers.',
@@ -65,7 +68,8 @@ export const places = [
   },
   {
     mark: '4', kind: 'landmark', region: 'tailwoods',
-    name: 'Badger Hollow', logName: 'Badger Hollow', ground: 'forest',
+    name: 'Badger Hollow', logName: 'Badger Hollow', ground: 'meadow',
+    sprite: { sheet: 'town', tile: 92 }, // a burrow mound
     arriveLines: [
       'passed through Badger Hollow. The badgers were grumpy, as ever.',
       'tiptoed through Badger Hollow without waking a single badger.',
@@ -74,6 +78,7 @@ export const places = [
   {
     mark: '5', kind: 'landmark', region: 'tailwoods',
     name: 'Drowsy Pond', logName: 'the Drowsy Pond', ground: 'flowers',
+    sprite: { sheet: 'town', tile: 17 }, // reeds
     arriveLines: [
       'reached the Drowsy Pond and napped beside it until sundown.',
       'skipped stones across the Drowsy Pond. Personal best: four.',
@@ -82,6 +87,7 @@ export const places = [
   {
     mark: '6', kind: 'landmark', region: 'tailwoods',
     name: 'Hollow Oak', logName: 'the Hollow Oak', ground: 'meadow',
+    sprite: { sheet: 'town', tile: 15 }, // a big autumn tree
     arriveLines: [
       'sheltered inside the Hollow Oak, which creaked like a snore.',
       'carved a name into the Hollow Oak, beside a hundred others.',
@@ -89,7 +95,8 @@ export const places = [
   },
   {
     mark: '7', kind: 'landmark', region: 'tailwoods',
-    name: "Tail's Tip", logName: "the Tail's Tip", ground: 'hills',
+    name: "Tail's Tip", logName: "the Tail's Tip", ground: 'meadow',
+    sprite: { sheet: 'town', tile: 83 }, // a signpost
     arriveLines: [
       "climbed the Tail's Tip and gazed out over the endless woods.",
       "stood atop the Tail's Tip. The ground felt oddly warm.",
@@ -99,7 +106,7 @@ export const places = [
 
 // Placeholder map of the Tailwoods. Every row must be the same length.
 // Key:  .  meadow    ,  flowers   T  forest   ^  hills
-//       ~  water     =  road      #  bridge   H  town houses
+//       ~  water     =  road      #  bridge   H  a house (its roof shows in the square above)
 //       1-9  the places listed above
 export const placeholderMap = [
   'TTTTTTTTTTTTTT~~TTTTTTTTTTTTTTTTTTTTTTTT',
@@ -115,10 +122,10 @@ export const placeholderMap = [
   'TTT.........=.~~...TTTT.=.,,...=......TT',
   'TTT.........=.~~....TT..=......=.....TTT',
   'TT..........=.~~........=......=....TTTT',
-  'TT....H.H...=.~~........=......=...TTTTT',
-  'TT....H1======##================...TTTTT',
-  'TT....HHH.....~~........=...........TTTT',
-  'TTT...........~~........=...TT.......TTT',
+  'TT...H.H.H..=.~~........=......=...TTTTT',
+  'TT.....1======##================...TTTTT',
+  'TT............~~........=...........TTTT',
+  'TTT..H.H.H....~~........=...TT.......TTT',
   'TTT.,,........~~...,,...=..TTTT.....TTTT',
   'TTTT..........~~........=...TT......TTTT',
   'TTTTTT........~~.....5===...........TTTT',

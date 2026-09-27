@@ -36,7 +36,7 @@ The log timestamps events by season and age, for example "Autumn, age 34: slew t
 **How a life ends**
 
 - **Death** can happen in combat or through risky events. The hero leaves a grave on the map where they fell.
-- **Retirement** happens by choice in a town from age 60, or automatically around 70. The hero settles in that town as a mentor.
+- **Retirement** happens by choice in a town from age 60, or automatically around 70. The hero settles in that town as a mentor. A hero who reaches 70 away from a town settles in the last town they visited.
 
 Retirement should always be the better outcome for future heroes. That creates real tension around risky choices late in life.
 
@@ -379,7 +379,7 @@ Adding `?debug` to the URL shows a game-speed control (1×, 5×, 20×), the hero
 
 **Art**
 
-Use Kenney's free CC0 pixel-art packs, sticking to one family (such as Tiny Town and Tiny Dungeon from the Tiny series) so styles match. Many whimsical monsters won't have a matching sprite, so plan on recolored and tinted versions of existing sprites. Crediting Kenney on an About screen is optional under CC0 but courteous.
+Use Kenney's free CC0 pixel-art packs, sticking to one family (such as Tiny Town and Tiny Dungeon from the Tiny series) so styles match. Monsters and animals also come from Tiny Creatures by Clint Bellanger, a CC0 expansion made to match Tiny Dungeon. Whimsical monsters without a matching sprite use recolored and tinted versions of existing sprites. Crediting Kenney and Clint Bellanger on an About screen is optional under CC0 but courteous.
 
 **Audio**
 
@@ -428,11 +428,13 @@ Every design question is decided.
 | Dragon and world names | Sominus; Whimsywild |
 | Region and town names | Keep the current names |
 | Class evolution | Player picks 1 of 2 classes at levels 5 and 15 |
-| Art | Kenney pixel-art packs |
+| Art | Kenney pixel-art packs (Tiny Town, Tiny Dungeon), plus Tiny Creatures for monsters and animals |
 | Rerolls and naming | Up to 3 rerolls per hero; the player can type a name |
 | Mentors | Several per town, with diminishing returns |
 | Legendary class tier | Post-v1 update |
 | Auto-decide | Chooses by the hero's tags |
 | Sound and music | In scope, added in Phase 3 |
 | Tuning | Run length, XP curve and drop rates set during Phase 1 playtests |
+| Automatic retirement away from town | The hero settles in the last town they visited |
+| Monster levels in Phase 1 | With only the Tailwoods built, monsters meet the hero at about the hero's own level, standing in for harder regions; above the region's levels they earn a title such as "Elder". Phase 2 switches to each region's own levels |
 
