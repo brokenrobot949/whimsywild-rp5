@@ -1,5 +1,6 @@
 // Debug tools, shown when the page address ends with ?debug
 // Game speed, the hero's seed (with a replay link), a save reset,
+// the story's progress (with a button to skip to the next act),
 // and a playtest log of every finished life with averages.
 import { loadSetting, saveSetting } from './save.js';
 
@@ -7,7 +8,9 @@ const SPEEDS = [1, 5, 20];
 
 // onReset erases the save and reloads (main.js does it, so autosave can't write the old save back).
 // onShowAll(on) shows the whole map, ignoring the fog.
-export function createDebugPanel({ getLife, getLives, onSpeed, onShowAll, onReset }) {
+// getStory() describes the story's progress; onNextAct() skips to the next act;
+// onPreviewEnding() plays the ending with the heroes so far, without changing anything.
+export function createDebugPanel({ getLife, getLives, getStory, onSpeed, onShowAll, onReset, onNextAct, onPreviewEnding }) {
   const panel = document.getElementById('debug');
   panel.innerHTML = `
     <summary>Debug</summary>
@@ -17,6 +20,8 @@ export function createDebugPanel({ getLife, getLives, onSpeed, onShowAll, onRese
     <div class="debug-row">Seed <span class="debug-seed"></span> <a class="debug-replay" href="#">replay</a></div>
     <div class="debug-row"><label><input type="checkbox" class="debug-show-all"> Show whole map</label></div>
     <div class="debug-row debug-tile">Point at the map to see a tile's position.</div>
+    <div class="debug-row">Story <span class="debug-story"></span> <button type="button" class="debug-next-act">Next act</button></div>
+    <div class="debug-row"><button type="button" class="debug-preview-ending">Preview ending</button></div>
     <div class="debug-row"><button type="button" class="debug-reset">Reset save</button></div>
     <h3>Playtest log</h3>
     <p class="debug-note">Length is game time at 1× speed, not counting pauses.</p>
@@ -51,6 +56,16 @@ export function createDebugPanel({ getLife, getLives, onSpeed, onShowAll, onRese
     onShowAll(showAll.checked);
   });
 
+  find('.debug-next-act').addEventListener('click', () => {
+    if (!confirm('Skip the story to the next act? This conquers a castle or finds verses in this save, for good.')) return;
+    onNextAct();
+  });
+
+  find('.debug-preview-ending').addEventListener('click', () => {
+    panel.open = false;
+    onPreviewEnding();
+  });
+
   find('.debug-reset').addEventListener('click', () => {
     if (!confirm('Erase all Whimsywild RP5 saves and settings in this browser?')) return;
     onReset();
@@ -58,8 +73,10 @@ export function createDebugPanel({ getLife, getLives, onSpeed, onShowAll, onRese
 
   function refresh() {
     const seed = getLife()?.hero.seed;
+    const dream = getLife()?.hero.dream;
     find('.debug-seed').textContent = seed ?? '-';
-    find('.debug-replay').href = seed === undefined ? '#' : `?debug&seed=${seed}`;
+    find('.debug-replay').href = seed === undefined ? '#' : `?debug&seed=${seed}${dream ? `&dream=${dream}` : ''}`;
+    find('.debug-story').textContent = getStory();
 
     const lives = getLives();
     const rows = find('tbody');

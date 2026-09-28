@@ -298,12 +298,20 @@ export const effectText = {
   heal: 'heals {percent}% HP',
   when: 'when below {percent}% HP',
   cooldown: 'every {value}s',
+  // Effects that only quirks and dreams use (see quirks.js and dreams.js).
+  against: '+{percent}% damage against {family}',
+  swordHints: 'the sword tells the odds in story events',
+  lostChance: '{percent}% chance of following the wrong rumor',
+  eventLuck: '+{percent}% chance in story events',
+  travelSpeed: '+{percent}% walking speed',
+  potionCarry: 'carries {value} more potion',
 };
 
 // Text on the choice cards.
 export const choiceText = {
   skillTitle: 'Level {level}: choose a skill',
   classTitle: 'Level {level}: choose a class',
+  keepsPerk: 'You keep {perk}, your {class} perk.', // shown when choosing an advanced class
   newSkill: 'New',
   rank: 'Rank {rank} of {max}',
   autoDecide: 'Auto-decide choices',

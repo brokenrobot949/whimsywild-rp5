@@ -1,14 +1,24 @@
 // The Adventure screen around the map: the hero strip, the adventure log, the encounter card
 // and the cards. (The Hero, Chronicle and Hall of Champions tabs are in screens.js.)
 import { on } from './game-events.js';
-import { lifeStatus } from './life.js';
+import { lifeStatus, visitName } from './life.js';
+import { visitKind } from './dungeons.js';
+import { isFinaleEntrance, dreamRegion } from './finale.js';
+import { finaleText } from '../../data/finale.js';
 import { xpToNextLevel } from './hero.js';
-import { tagInfo, classById, skillRank, describeEffects } from './skills.js';
-import { skullsFor, directionTo, distanceWord } from './rumors.js';
+import { tagInfo, skillChip, classById, skillRank, describeEffects, quirkById } from './skills.js';
+import { placeSkulls, directionTo, distanceWord } from './rumors.js';
+import { eventById, oddsWord } from './events.js';
+import { originById } from './background.js';
+import { dreamById } from './dreams.js';
+import { dreamText } from '../../data/dreams.js';
+import { mentorText } from '../../data/mentors.js';
+import { dungeonText } from '../../data/dungeons.js';
+import { castleText } from '../../data/castles.js';
 import { regions } from '../../data/regions.js';
 import { rumorText, danger } from '../../data/rumors.js';
 import { picture, TILE } from './art.js';
-import { fill } from './text.js';
+import { fill, withArticle } from './text.js';
 import { seasons, newHeroText, recruits } from '../../data/life.js';
 import { blowNotes } from '../../data/combat.js';
 import { choiceText } from '../../data/skills.js';
@@ -27,6 +37,7 @@ export function createUi(art) {
     hpText: byId('hero-hp-text'),
     xp: byId('hero-xp'),
     status: byId('hero-status'),
+    dream: byId('hero-dream'),
   };
   const log = byId('log');
   const card = {
@@ -45,6 +56,12 @@ export function createUi(art) {
     hp: byId('encounter-hp'),
     note: byId('encounter-note'),
   };
+  const dungeonBox = {
+    box: byId('dungeon'),
+    name: byId('dungeon-name'),
+    rooms: byId('dungeon-rooms'),
+    note: byId('dungeon-note'),
+  };
   let life = null;
   let shownHp = null;
   let hideTimer = null;
@@ -61,19 +78,23 @@ export function createUi(art) {
     strip.season.textContent = seasons[hero.season];
     strip.xp.style.width = percent(hero.xp / xpToNextLevel(hero.level));
     strip.status.textContent = lifeStatus(life);
+    const dream = dreamById(hero.dream);
+    strip.dream.textContent = dream ? fill(dreamText.strip, { name: dream.name }) : '';
+    strip.dream.title = dream ? `${dreamText.label}: ${dream.text}` : '';
   }
 
   // Called every frame, since HP creeps back up while the hero travels.
   function showHp() {
     const { hero } = life;
-    const hp = Math.ceil(hero.hp);
-    const key = `${hp}/${hero.stats.maxHp}`;
+    const maxHp = Math.ceil(hero.stats.maxHp);
+    const hp = Math.min(Math.ceil(hero.hp), maxHp); // rounded the same way, so never "82 / 81"
+    const key = `${hp}/${maxHp}`;
     if (key === shownHp) return;
     shownHp = key;
     const share = hero.hp / hero.stats.maxHp;
     strip.hp.style.width = percent(share);
     strip.hp.className = `fill ${share > 0.5 ? 'good' : share > 0.25 ? 'worried' : 'danger'}`;
-    strip.hpText.textContent = `${hp} / ${Math.round(hero.stats.maxHp)} HP`;
+    strip.hpText.textContent = `${hp} / ${maxHp} HP`;
   }
 
   // Newest lines go at the top, so the latest news is always in view.
@@ -112,7 +133,7 @@ export function createUi(art) {
     const buttons = options.map((option, index) => {
       const button = document.createElement('button');
       button.type = 'button';
-      button.className = option.detail ? 'option' : 'option primary';
+      button.className = options.length === 1 ? 'option primary' : 'option';
       const head = document.createElement('span');
       head.className = 'option-title';
       head.textContent = option.title;
@@ -184,6 +205,13 @@ export function createUi(art) {
     on(name, showHero);
   }
   on('fight-start', ({ monster }) => showEncounter(monster));
+  // The map shakes when the Sleeper stirs.
+  on('tremor', () => {
+    const map = byId('map');
+    map.classList.remove('shaking');
+    void map.offsetWidth; // restarts the animation if it's already playing
+    map.classList.add('shaking');
+  });
   on('potion', () => { encounter.note.textContent = blowNotes.potion; });
   on('hit', ({ life: current, by, dodged, critical, damage }) => {
     const note = by === 'hero'
@@ -202,6 +230,44 @@ export function createUi(art) {
     encounter.note.textContent = blowNotes.victory;
     hideTimer = setTimeout(hideEncounter, ENCOUNTER_LINGER_MS);
   });
+  on('boss-move', ({ life: current, move, damage, healed }) => {
+    const note = healed === undefined ? castleText.bossMove : castleText.bossHeal;
+    encounter.note.textContent = fill(note, { move: move.name, damage, healed });
+    showMonsterHp(current.fight.monster);
+  });
+  on('song-verse', ({ verse }) => { encounter.note.textContent = fill(finaleText.songNote, { title: verse.title }); });
+  for (const name of ['dungeon-enter', 'dungeon-room', 'dungeon-leave', 'life-end']) on(name, showDungeon);
+
+  // The dungeon (or castle) panel: one pip per room, the current one lit, and what's in it.
+  function showDungeon() {
+    const dungeon = life?.dungeon;
+    dungeonBox.box.hidden = !dungeon || Boolean(life.ending);
+    if (dungeonBox.box.hidden) return;
+    const { place, rooms, index } = dungeon;
+    const kind = visitKind(dungeon);
+    dungeonBox.box.classList.toggle('castle', kind === 'castle');
+    dungeonBox.box.classList.toggle('nightmare', kind === 'nightmare');
+    dungeonBox.name.textContent = kind === 'nightmare' ? finaleText.panelName : place.name;
+    dungeonBox.rooms.replaceChildren(...rooms.map((room, i) => {
+      const pip = document.createElement('li');
+      pip.className = [dreamRegion(room) ? 'dream' : room, i < index - 1 ? 'done' : i === index - 1 ? 'current' : ''].join(' ');
+      return pip;
+    }));
+    dungeonBox.note.textContent = index > 0
+      ? `${fill(dungeonText.progress, { room: index, rooms: rooms.length })}: ${roomLabel(kind, rooms[index - 1])}`
+      : '';
+  }
+
+  // What a room is called in the panel: "A treasure chest", or "A dream of gold".
+  function roomLabel(kind, room) {
+    if (kind === 'nightmare') {
+      const region = dreamRegion(room);
+      if (!region) return finaleText.songRoom;
+      const theme = regions[region].dreamTheme;
+      return fill(finaleText.dreamRoom, { theme: theme.charAt(0).toLowerCase() + theme.slice(1) });
+    }
+    return (kind === 'castle' ? castleText.rooms : dungeonText.rooms)[room];
+  }
 
   return {
     setLife(next) {
@@ -212,8 +278,9 @@ export function createUi(art) {
       life.log.forEach(addEntry);
       showHero();
       showHp();
-      // A hero picked up mid-fight shows the fight straight away.
+      // A hero picked up mid-fight, or mid-dungeon, shows it straight away.
       if (life.fight && !life.ending) showEncounter(life.fight.monster);
+      showDungeon();
     },
 
     update() {
@@ -226,10 +293,11 @@ export function createUi(art) {
     },
 
     // The New Hero card: type a name, reroll, pick a starting town, then Begin.
-    //   towns    the towns to start from; the life's start town is shown as chosen
-    //   typed    the name the player has typed so far, if any
+    //   towns        the towns to start from; the life's start town is shown as chosen
+    //   mentorCount  how many mentors each town has: mentorCount(town)
+    //   typed        the name the player has typed so far, if any
     //   onName(text), onReroll(), onTown(town), onBegin()
-    showNewHero({ towns, typed, onName, onReroll, onTown, onBegin }) {
+    showNewHero({ towns, mentorCount, typed, onName, onReroll, onTown, onBegin }) {
       const { hero } = life;
       clearTimeout(autoTimer);
       rearmAuto = null;
@@ -254,6 +322,16 @@ export function createUi(art) {
       const about = document.createElement('p');
       about.className = 'muted';
       about.textContent = fill(newHeroText.about, { epithet: hero.epithet, age: hero.age });
+      const background = backgroundLines(hero);
+      // Tonight's dream belongs to the world, so it goes above the hero and never rerolls.
+      const dream = dreamById(hero.dream);
+      const dreamLine = document.createElement('p');
+      dreamLine.className = 'dream-line';
+      if (dream) {
+        const name = document.createElement('b');
+        name.textContent = `${dreamText.label}: ${dream.name}.`;
+        dreamLine.append(name, ' ', dream.text);
+      }
 
       const reroll = document.createElement('button');
       reroll.type = 'button';
@@ -277,9 +355,26 @@ export function createUi(art) {
         const detail = document.createElement('span');
         detail.className = 'option-detail';
         detail.textContent = fill(newHeroText.townDetail, { level: town.recruitLevel ?? 1, region: regions[town.region].name });
+        const count = mentorCount(town);
+        if (count > 0) detail.textContent += ` · ${fill(mentorText.count[count === 1 ? 0 : 1], { count })}`;
         button.append(title, detail);
         button.onclick = () => onTown(town);
         townList.append(button);
+      }
+
+      // What the chosen town's mentors are giving this hero.
+      const mentorLine = document.createElement('div');
+      mentorLine.className = 'mentor-line';
+      if (hero.mentors.length > 0) {
+        const heading = document.createElement('b');
+        heading.textContent = fill(mentorText.label, { town: life.startTown.name });
+        const list = document.createElement('ul');
+        for (const mentor of hero.mentors) {
+          const item = document.createElement('li');
+          item.textContent = fill(mentorText.gift, { name: mentor.name, gift: mentor.text ?? '' });
+          list.append(item);
+        }
+        mentorLine.append(heading, list);
       }
 
       const begin = document.createElement('button');
@@ -292,7 +387,10 @@ export function createUi(art) {
         onBegin();
       };
 
-      card.options.replaceChildren(nameField, about, reroll, townsLabel, townList, begin);
+      card.options.replaceChildren(
+        ...(dream ? [dreamLine] : []), nameField, about, background, reroll, townsLabel, townList,
+        ...(hero.mentors.length > 0 ? [mentorLine] : []), begin,
+      );
       card.layer.hidden = false;
       document.body.dataset.card = 'open';
       card.layer.scrollTop = card.layer.scrollHeight;
@@ -308,27 +406,100 @@ export function createUi(art) {
       });
     },
 
-    // A skill, class or rumor choice.
+    // The ending: the name, epithet and greatest deed of every hero in `records` (oldest first)
+    // scroll slowly up the screen. The player can skip it. `closing` is an optional card to show
+    // after, { title, body, button }. (In play, Act 4's interlude follows instead, as the next
+    // hero is rolled.)
+    showEnding(records, onDone, closing = null) {
+      const box = byId('ending');
+      const roll = byId('ending-roll');
+      const skip = byId('ending-skip');
+      const title = document.createElement('h2');
+      title.textContent = finaleText.rollTitle;
+      const intro = document.createElement('p');
+      intro.className = 'ending-intro';
+      intro.textContent = finaleText.rollIntro;
+      const credits = records.map((record) => {
+        const credit = document.createElement('div');
+        credit.className = 'credit';
+        const name = document.createElement('b');
+        name.textContent = `${record.name} ${record.epithet}`;
+        const deed = document.createElement('div');
+        deed.textContent = record.deed ?? '';
+        credit.append(name, deed);
+        return credit;
+      });
+      roll.replaceChildren(title, intro, ...credits);
+      skip.textContent = finaleText.rollSkip;
+      const seconds = 8 + records.length * finaleText.secondsPerHero;
+      roll.style.animation = 'none';
+      void roll.offsetWidth; // restarts the scroll if it has played before
+      roll.style.animation = `ending-roll ${seconds}s linear forwards`;
+      box.hidden = false;
+      const finish = () => {
+        roll.onanimationend = null;
+        skip.onclick = null;
+        box.hidden = true;
+        if (closing) showCard({ title: closing.title, body: closing.body, options: [{ title: closing.button }], onPick: onDone });
+        else onDone();
+      };
+      roll.onanimationend = finish;
+      skip.onclick = finish;
+    },
+
+    // A skill, class, rumor or story event choice.
     showChoice(choice, current, { auto, onPick }) {
       const { hero, world } = current;
       let options;
       let title;
+      let body;
       if (choice.kind === 'rumor') {
         title = choice.town ? fill(rumorText.townTitle, { town: choice.town }) : rumorText.campTitle;
         options = choice.options.map(({ place, text }) => {
-          const where = fill(rumorText.detail, {
+          let where = fill(rumorText.detail, {
             distance: distanceWord(hero, place),
             direction: directionTo(hero, place),
             region: regions[place.region].name,
           });
+          if (place.kind === 'dungeon') where += ` · ${dungeonText.rumorNote}`;
+          if (place.kind === 'castle') where += ` · ${castleText.rumorNote}`;
+          if (isFinaleEntrance(world, place)) where += ` · ${finaleText.rumorNote}`;
           return {
             title: text,
-            note: danger.skull.repeat(skullsFor(hero.level, place.region)),
+            note: danger.skull.repeat(placeSkulls(hero.level, place, world)),
             detail: world.discovered.has(place.name) ? where : `${where} · ${rumorText.unexplored}`,
           };
         });
+      } else if (choice.kind === 'retreat') {
+        const nightmare = current.dungeon && visitKind(current.dungeon) === 'nightmare';
+        const values = { first: hero.name.split(' ')[0], left: choice.left, place: current.dungeon ? visitName(current.dungeon) : choice.place };
+        title = dungeonText.retreatTitle;
+        body = fill(dungeonText.retreatBody, values);
+        options = [
+          { title: dungeonText.pressOn, detail: nightmare ? finaleText.pressOnDetail : dungeonText.pressOnDetail },
+          { title: dungeonText.retreat, detail: dungeonText.retreatDetail },
+        ];
+      } else if (choice.kind === 'retire') {
+        const values = { town: choice.town, age: hero.age, first: hero.name.split(' ')[0] };
+        title = fill(mentorText.retireTitle, values);
+        body = fill(mentorText.retireBody, values);
+        options = [
+          { title: mentorText.retire, detail: fill(mentorText.retireDetail, values) },
+          { title: mentorText.stay, detail: mentorText.stayDetail },
+        ];
+      } else if (choice.kind === 'event') {
+        const event = eventById(choice.event);
+        title = event.title;
+        body = event.text;
+        options = event.options.map((option) => ({
+          title: option.text,
+          tags: [tagInfo(option.tag)],
+          note: oddsWord(hero, option),
+        }));
       } else if (choice.kind === 'class') {
         title = fill(choiceText.classTitle, { level: choice.level });
+        const current = hero.class ? classById(hero.class) : null;
+        if (current) body = fill(choiceText.keepsPerk, { perk: current.perk.name, class: current.name });
         options = choice.options.map((option) => ({
           title: option.name,
           tags: [...new Set(option.tags)].map(tagInfo),
@@ -339,16 +510,18 @@ export function createUi(art) {
         title = fill(choiceText.skillTitle, { level: choice.level });
         options = choice.options.map((skill) => {
           const rank = skillRank(hero, skill);
+          let note = rank === 0 ? choiceText.newSkill : fill(choiceText.rank, { rank: rank + 1, max: skill.ranks.length });
+          if (choice.lesson?.skill === skill.name) note += ` · ${fill(mentorText.lessonNote, { mentor: choice.lesson.mentor.split(' ')[0] })}`;
           return {
             title: skill.name,
-            tags: [tagInfo(skill.tag)],
-            note: rank === 0 ? choiceText.newSkill : fill(choiceText.rank, { rank: rank + 1, max: skill.ranks.length }),
+            tags: [skillChip(skill)],
+            note,
             detail: describeEffects(skill.ranks[rank]),
             flavor: skill.flavor,
           };
         });
       }
-      showCard({ title, options, onPick, auto });
+      showCard({ title, body, options, onPick, auto });
     },
   };
 }
@@ -363,6 +536,35 @@ export function logLine({ kind, stamp, text, color }) {
   item.append(when, ` ${text}`);
   if (color) item.style.color = color;
   return item;
+}
+
+// The hero's origin and quirk, for the New Hero card:
+// "Failed Bard [Cunning] Starts with an Out-of-Tune Lute." and "Afraid of Geese: Weaker against birds."
+function backgroundLines(hero) {
+  const box = document.createElement('div');
+  box.className = 'hero-background';
+  const origin = originById(hero.origin);
+  const quirk = quirkById(hero.quirk);
+  if (origin) {
+    const line = document.createElement('p');
+    const name = document.createElement('b');
+    name.textContent = origin.name;
+    const tag = tagInfo(origin.tag);
+    const chip = document.createElement('span');
+    chip.className = 'tag-chip';
+    chip.textContent = tag.id;
+    chip.style.background = tag.color;
+    line.append(name, ' ', chip, ' ', fill(newHeroText.originItem, { a: withArticle(origin.item.name) }));
+    box.append(line);
+  }
+  if (quirk) {
+    const line = document.createElement('p');
+    const name = document.createElement('b');
+    name.textContent = fill(newHeroText.quirk, { quirk: quirk.name });
+    line.append(name, ' ', quirk.about);
+    box.append(line);
+  }
+  return box;
 }
 
 export function percent(share) {

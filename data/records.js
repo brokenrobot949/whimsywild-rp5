@@ -9,6 +9,9 @@ export const keepLogs = 50;
 export const deedLines = {
   slew: 'Slew {a}.',
   found: 'Found {a}.',
+  cleared: 'Cleared {place}.',
+  conquered: 'Conquered {place}.',
+  verse: 'Found the verse "{title}".',
   none: 'Set out bravely, which counts for something.',
 };
 
@@ -59,6 +62,9 @@ export const heroTabText = {
   path: 'Class',
   notYet: 'Not yet chosen',
   unknown: '?',
+  background: 'Background',
+  blessings: 'Blessings',
+  blessingLeft: '{seasons} seasons left',
   tags: 'Tags',
   skills: 'Skills',
   noSkills: 'No skills yet. The first comes at level {level}.',

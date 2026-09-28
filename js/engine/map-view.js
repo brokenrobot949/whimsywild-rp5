@@ -10,6 +10,8 @@ import { heroSprite } from '../../data/art.js';
 import { monsters } from '../../data/monsters.js';
 import { classes } from '../../data/classes.js';
 import { graveSettings } from '../../data/graves.js';
+import { isConquered } from './castles.js';
+import { isFinaleEntrance } from './finale.js';
 import { TILE, picture, recolorSheet } from './art.js';
 
 const TILES_ACROSS = 12;     // roughly how many tiles fit across the map view at first
@@ -23,6 +25,10 @@ const LUNGE_SECONDS = 0.15;  // how long a fighter leans in when striking (game 
 const LUNGE_PIXELS = 3;      // how far they lean, in art pixels
 const GLINT = '#f2d45c';     // the twinkle on a grave whose heirloom still waits
 const GRAVE_LABEL = '#d9d2e6';
+const BANNER = '#e04a36';   // the banner over a conquered castle
+const POLE = '#3b2d25';
+const HELD = '#e0523a';     // a castle still held by its boss, on the zoomed-out map
+const DREAM_GLINT = '#d7b4ff'; // the sparkle over the way into the finale
 
 // `onPointerTile(x, y)` is told which tile the pointer is over (used by debug mode).
 export function createMapView(canvas, world, art, { onPointerTile } = {}) {
@@ -46,7 +52,7 @@ export function createMapView(canvas, world, art, { onPointerTile } = {}) {
   let picking = null;  // while a new hero is being set up: { towns, chosen }, shown on the whole map
 
   function refreshHints() {
-    const key = `${world.fogVersion ?? 0}/${world.discovered.size}`;
+    const key = `${world.fogVersion ?? 0}/${world.sealVersion ?? 0}/${world.discovered.size}`;
     if (key === hintsFor) return;
     hintsFor = key;
     const nearExplored = (place) => {
@@ -223,7 +229,24 @@ export function createMapView(canvas, world, art, { onPointerTile } = {}) {
     }
 
     for (const { place, look: lookAt } of markers) {
-      if (inView(place.x, place.y) && seen(place.x, place.y)) blit(lookAt, place.x * size - camX, place.y * size - camY);
+      if (!inView(place.x, place.y) || !seen(place.x, place.y)) continue;
+      const x = place.x * size - camX;
+      const y = place.y * size - camY;
+      blit(lookAt, x, y);
+      if (place.kind === 'castle' && isConquered(world, place.name)) {
+        // A banner flies over a conquered castle: a pole, and a pennant blowing to the right.
+        ctx.fillStyle = POLE;
+        ctx.fillRect(x + 7 * scale, y - 7 * scale, scale, 9 * scale);
+        ctx.fillStyle = BANNER;
+        ctx.fillRect(x + 8 * scale, y - 7 * scale, 5 * scale, 2 * scale);
+        ctx.fillRect(x + 8 * scale, y - 5 * scale, 3 * scale, scale);
+      }
+      if (isFinaleEntrance(world, place)) {
+        // The way into the dragon's dream is open: a violet sparkle over the entrance.
+        ctx.fillStyle = DREAM_GLINT;
+        ctx.fillRect(x + 7 * scale, y - 4 * scale, 2 * scale, 6 * scale);
+        ctx.fillRect(x + 5 * scale, y - 2 * scale, 6 * scale, 2 * scale);
+      }
     }
 
     // Graves, with a twinkle on those whose heirloom still waits. A hero who has just fallen
@@ -321,7 +344,8 @@ export function createMapView(canvas, world, art, { onPointerTile } = {}) {
       if (!showAll && !world.fog[place.y * world.width + place.x]) continue;
       const x = place.x * size - camX;
       const y = place.y * size - camY;
-      ctx.fillStyle = place.kind === 'town' ? '#fff6dc' : '#f2d45c';
+      const held = place.kind === 'castle' && !isConquered(world, place.name);
+      ctx.fillStyle = place.kind === 'town' ? '#fff6dc' : held ? HELD : '#f2d45c';
       ctx.fillRect(x - dot / 2, y - dot / 2, dot, dot);
       if (place.kind !== 'town') continue;
       // Setting up a new hero: each starting town shows its level, and the chosen one is ringed.
@@ -392,7 +416,7 @@ function createOverview(world, colors) {
   return {
     canvas,
     refresh(showAll) {
-      const key = `${world.fogVersion ?? 0}/${showAll}`;
+      const key = `${world.fogVersion ?? 0}/${world.sealVersion ?? 0}/${showAll}`; // redrawn when fog lifts or mist clears
       if (key === drawnFor) return;
       drawnFor = key;
       const image = g.createImageData(world.width, world.height);

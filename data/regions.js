@@ -5,6 +5,8 @@
 //   name, levels    its name and the monster levels it's meant for
 //   dreamTheme      what the dragon dreams of here
 //   sealed          true means dream-mist covers it and heroes can't enter yet (a later phase)
+//   opensInAct      dream-mist covers it until the story reaches this act (see story.js)
+//   openLine        logged in the life of the hero whose deed lifts the mist (under ~70 characters)
 //   ground          the terrain cleared around its towns and landmarks (see terrain.js)
 //   terrain         what the land is made of: [terrain, share] pairs. Terrains next to each
 //                   other in the list tend to sit next to each other on the map
@@ -78,28 +80,56 @@ export const regions = {
     ],
   },
   spine: {
-    letter: 's', name: 'The Spine Peaks', levels: [17, 22], dreamTheme: 'Knights', sealed: true,
+    letter: 's', name: 'The Spine Peaks', levels: [17, 22], dreamTheme: 'Knights',
     ground: 'highland',
     terrain: [['forest', 1.5], ['highland', 4], ['rocks', 4.5]],
-    wanderingLines: [],
+    wanderingLines: [
+      'passed an old tourney ground, its banners faded to grey.',
+      'found a helmet on a rock, still polished.',
+      'heard hoofbeats echo through the pass. Nobody came.',
+      'climbed a ridge that curved like a great back.',
+      'shared a fire with a knight who would not say his quest.',
+      'watched eagles circle the high peaks.',
+      'found a lance snapped clean in two, as if on something hard.',
+    ],
   },
   claws: {
-    letter: 'c', name: 'The Clawlands', levels: [21, 26], dreamTheme: 'An ancient war', sealed: true,
+    letter: 'c', name: 'The Clawlands', levels: [21, 26], dreamTheme: 'An ancient war',
     ground: 'badlands',
     terrain: [['rocks', 2], ['badlands', 5], ['ash', 2]],
-    wanderingLines: [],
+    wanderingLines: [
+      'walked past rusted swords, still stuck in the ground.',
+      'heard a distant war horn. Nobody else did.',
+      'found an old battle map. Both sides had lost.',
+      'saw the ground scored by five great furrows.',
+      'picked a flower growing out of an old helmet.',
+      'marched in step for a mile before noticing.',
+      'found an arrowhead the size of a spade.',
+    ],
   },
   smokecrown: {
-    letter: 'k', name: 'Smokecrown', levels: [25, 30], dreamTheme: 'Loneliness', sealed: true,
+    letter: 'k', name: 'Smokecrown', levels: [25, 30], dreamTheme: 'Loneliness', opensInAct: 3,
+    openLine: 'saw the mist over Smokecrown lift, far to the north.',
     ground: 'ash',
     terrain: [['lava', 1.2], ['ash', 6], ['rocks', 2.5]],
-    wanderingLines: [],
+    wanderingLines: [
+      'found a child\'s shoe in the ash, and wondered whose it was.',
+      'heard an echo answer a question nobody had asked.',
+      'passed a house with a lamp lit in the window, and nobody home.',
+      'watched the smoke drift up like a long, slow sigh.',
+      'found a note that said "back soon". The ink had faded.',
+      'sat on a bench built for two, and felt the empty half.',
+      'heard the ground breathing, very slowly, underfoot.',
+    ],
   },
 };
 
-// Towns and landmarks.
-//   kind        'town' or 'landmark'
+// Towns, landmarks, dungeons and monster castles.
+//   kind        'town', 'landmark', 'dungeon' (see dungeons.js) or 'castle' (see castles.js)
 //   recruitLevel (towns) once discovered, heroes can start here at this level
+//   guardian    (dungeons) the monster guarding the treasure, from monsters.js
+//   boss        (castles) the boss who holds the castle, from monsters.js (with boss: true)
+//   rooms       (dungeons and castles, optional) [fewest, most] rooms before the guardian or boss
 //   region      which region it belongs to (from the list above)
 //   at          where it stands: [tiles across, tiles down] from the top-left corner
 //   name        the label shown on the map
@@ -203,6 +233,47 @@ export const places = [
     ],
   },
 
+  {
+    kind: 'dungeon', region: 'tailwoods', at: [32, 142], guardian: 'Grumpy Badger', rooms: [3, 4],
+    name: 'Snoring Burrow', logName: 'the Snoring Burrow',
+    sprite: { sheet: 'dungeon', tile: 55 }, // steps going down
+    arriveLines: [
+      'crawled into the Snoring Burrow. Something below snored.',
+      'squeezed down into the Snoring Burrow, lantern first.',
+    ],
+    rumors: [
+      'A burrow in the west snores louder than any badger.',
+      'Treasure, they say, at the bottom of the Snoring Burrow.',
+    ],
+  },
+  {
+    kind: 'dungeon', region: 'tailwoods', at: [84, 184], guardian: 'Wandering Toadstool', rooms: [3, 4],
+    name: 'Mushroom Cellar', logName: 'the Mushroom Cellar',
+    sprite: { sheet: 'dungeon', tile: 54 }, // stone steps
+    arriveLines: [
+      'went down into the Mushroom Cellar. It smelled of soup.',
+      'opened the Mushroom Cellar. The mushrooms turned to look.',
+    ],
+    rumors: [
+      'The old Mushroom Cellar grows things that walk.',
+      'A cellar near Tailsend is full of mushrooms, and worse.',
+    ],
+  },
+
+  {
+    kind: 'castle', region: 'tailwoods', at: [60, 173], boss: 'Old Grizzlewick',
+    name: 'Stumptail Keep', logName: 'Stumptail Keep',
+    sprite: { sheet: 'town', tile: 112 }, // a castle gate
+    arriveLines: [
+      'tiptoed through the gate of Stumptail Keep. Something snored.',
+      'crept into Stumptail Keep, where even the guards were napping.',
+    ],
+    rumors: [
+      'A great bear sleeps in Stumptail Keep. Nobody wakes it.',
+      'Stumptail Keep has been snoring for a hundred years.',
+    ],
+  },
+
   // ---- Hindhill Farms ----
   {
     kind: 'town', region: 'hindhill', at: [58, 126], recruitLevel: 4,
@@ -266,6 +337,34 @@ export const places = [
     rumors: [
       'A sunflower taller than a tower watches travellers pass.',
       'The Giant Sunflower drops seeds the size of shields.',
+    ],
+  },
+
+  {
+    kind: 'dungeon', region: 'hindhill', at: [70, 150], guardian: 'Pie Golem',
+    name: 'Root Cellar', logName: 'the Root Cellar',
+    sprite: { sheet: 'town', tile: 85 }, // a cellar door
+    arriveLines: [
+      'lifted the door of the Root Cellar. Something inside was chewing.',
+      'went down into the Root Cellar, where the turnips whisper.',
+    ],
+    rumors: [
+      'Something in the Root Cellar has eaten the whole harvest.',
+      'The Root Cellar hums at night, like a hungry stomach.',
+    ],
+  },
+
+  {
+    kind: 'castle', region: 'hindhill', at: [48, 105], boss: 'Glutton Lord',
+    name: 'Castle Hock', logName: 'Castle Hock',
+    sprite: { sheet: 'town', tile: 112 }, // a castle gate
+    arriveLines: [
+      'marched up to Castle Hock. It smelled of gravy.',
+      'slipped into Castle Hock across a moat of soup.',
+    ],
+    rumors: [
+      'The Glutton Lord of Castle Hock eats a harvest a day.',
+      'Carts of pies go into Castle Hock. None come out.',
     ],
   },
 
@@ -335,6 +434,47 @@ export const places = [
     ],
   },
 
+  {
+    kind: 'dungeon', region: 'flank', at: [92, 108], guardian: 'Mimic',
+    name: 'Counting House', logName: 'the Counting House',
+    sprite: { sheet: 'town', tile: 90 }, // a stone door
+    arriveLines: [
+      'let themselves into the Counting House. The coins were still counting.',
+      'stepped into the Counting House, where the ledgers never close.',
+    ],
+    rumors: [
+      'The old Counting House is still counting, all by itself.',
+      'Nobody who went into the Counting House came out poor.',
+    ],
+  },
+  {
+    kind: 'dungeon', region: 'flank', at: [66, 104], guardian: 'Gilded Golem',
+    name: 'Sunken Vault', logName: 'the Sunken Vault',
+    sprite: { sheet: 'town', tile: 89 }, // a door in a stone wall
+    arriveLines: [
+      'found the door of the Sunken Vault, and went down.',
+      'went down into the Sunken Vault. Gold glittered below.',
+    ],
+    rumors: [
+      'A vault sank into the ground, gold and all.',
+      'The Sunken Vault is guarded by something golden.',
+    ],
+  },
+
+  {
+    kind: 'castle', region: 'flank', at: [104, 95], boss: 'Baron Goldtooth',
+    name: 'Goldrib Hall', logName: 'Goldrib Hall',
+    sprite: { sheet: 'town', tile: 112 }, // a castle gate
+    arriveLines: [
+      'paid no toll at the gate of Goldrib Hall, and went in.',
+      'strode into Goldrib Hall. Even the floors were gilded.',
+    ],
+    rumors: [
+      'Baron Goldtooth taxes all who pass Goldrib Hall.',
+      'Goldrib Hall glitters on its hill, and it bites.',
+    ],
+  },
+
   // ---- The Wingshade Fens: the dragon dreams of being small ----
   {
     kind: 'town', region: 'fens', at: [90, 46], recruitLevel: 12,
@@ -401,28 +541,338 @@ export const places = [
     ],
   },
 
-  // ---- Towns of the sealed regions ----
+  {
+    kind: 'dungeon', region: 'fens', at: [74, 40], guardian: 'Enormous Beetle',
+    name: 'Hollow Log', logName: 'the Hollow Log',
+    sprite: { sheet: 'dungeon', tile: 45 }, // a door
+    arriveLines: [
+      'crawled into the Hollow Log, which went on for miles.',
+      'entered the Hollow Log. From inside, it was a great hall.',
+    ],
+    rumors: [
+      'A hollow log in the fens is bigger inside than out.',
+      'Something lives deep inside the Hollow Log. Something big.',
+    ],
+  },
+
+  {
+    kind: 'castle', region: 'fens', at: [101, 31], boss: 'Mossmother',
+    name: 'Pinion Tower', logName: 'Pinion Tower',
+    sprite: { sheet: 'town', tile: 112 }, // a castle gate
+    arriveLines: [
+      'pushed through the mossy door of Pinion Tower.',
+      'began the long, damp climb up Pinion Tower.',
+    ],
+    rumors: [
+      'Pinion Tower is choked in moss, and the moss is hungry.',
+      'Something ancient grows at the top of Pinion Tower.',
+    ],
+  },
+
+  // ---- The Spine Peaks: the dragon dreams of knights ----
   {
     kind: 'town', region: 'spine', at: [118, 74], recruitLevel: 16,
     name: 'Ridgehold', logName: 'Ridgehold',
-    arriveLines: ['climbed into Ridgehold, perched on the ridge like a crown.'],
+    arriveLines: [
+      'climbed into Ridgehold, perched on the ridge like a crown.',
+      'reached Ridgehold, where the knights still polish their armor.',
+    ],
+    rumors: [
+      "Ridgehold's knights still train for a dragon hunt.",
+      'The bells of Ridgehold ring whenever the mountain shivers.',
+    ],
   },
+  {
+    kind: 'landmark', region: 'spine', at: [84, 70],
+    name: 'Vertebra Pass', logName: 'Vertebra Pass',
+    sprite: { sheet: 'town', tile: 111 }, // a stone arch
+    arriveLines: [
+      'crossed Vertebra Pass, between ridges like great bones.',
+      'reached Vertebra Pass, where the wind whistles a tune.',
+    ],
+    rumors: [
+      'Vertebra Pass climbs between ridges shaped like bones.',
+      'The wind through Vertebra Pass hums an old tune.',
+    ],
+  },
+  {
+    kind: 'landmark', region: 'spine', at: [138, 66],
+    name: "Knight's Rest", logName: "Knight's Rest",
+    sprite: { sheet: 'dungeon', tile: 41 }, // a stone knight
+    arriveLines: [
+      "reached Knight's Rest, where old knights lie in stone.",
+      "bowed at Knight's Rest, among the stone knights.",
+    ],
+    rumors: [
+      'Stone knights lie at rest, still facing their foe.',
+      "Knight's Rest holds the tombs of the dragon-hunters.",
+    ],
+  },
+  {
+    kind: 'landmark', region: 'spine', at: [106, 78],
+    name: "Hunters' Cairn", logName: "the Hunters' Cairn",
+    sprite: { sheet: 'dungeon', tile: 24 }, // a pile of stones
+    arriveLines: [
+      "reached the Hunters' Cairn and added a stone.",
+      "read the names on the Hunters' Cairn. None came home.",
+    ],
+    rumors: [
+      'A cairn of stones for hunters who never returned.',
+      "Every stone on the Hunters' Cairn is a hunter's name.",
+    ],
+  },
+  {
+    kind: 'landmark', region: 'spine', at: [146, 70],
+    name: 'Old Watchtower', logName: 'the Old Watchtower',
+    sprite: { sheet: 'town', tile: 103 }, // a tower door
+    arriveLines: [
+      'climbed the Old Watchtower. Every window faces the peaks.',
+      'reached the Old Watchtower, kept now by one old owl.',
+    ],
+    rumors: [
+      'An old watchtower keeps watch over something vast.',
+      'The Old Watchtower was built to see something wake.',
+    ],
+  },
+
+  {
+    kind: 'dungeon', region: 'spine', at: [126, 82], guardian: 'Rusted Knight',
+    name: 'Barrow of Knights', logName: 'the Barrow of Knights',
+    sprite: { sheet: 'dungeon', tile: 47 }, // a heavy door
+    arriveLines: [
+      'pushed open the Barrow of Knights. Armor stirred inside.',
+      'went down into the Barrow of Knights, very quietly.',
+    ],
+    rumors: [
+      'The knights in the old barrow do not rest easy.',
+      'A barrow full of knights, and one who still keeps watch.',
+    ],
+  },
+  {
+    kind: 'dungeon', region: 'spine', at: [100, 68], guardian: 'Grumbling Yeti',
+    name: 'Frozen Tunnel', logName: 'the Frozen Tunnel',
+    sprite: { sheet: 'dungeon', tile: 46 }, // a wide door
+    arriveLines: [
+      'went into the Frozen Tunnel. Their breath turned to frost.',
+      'entered the Frozen Tunnel, which groaned like old ice.',
+    ],
+    rumors: [
+      'A tunnel runs through the mountain, frozen solid.',
+      'Something big and grumbling lives in the Frozen Tunnel.',
+    ],
+  },
+
+  {
+    kind: 'castle', region: 'spine', at: [139, 81], boss: 'Sir Grimsby the Unyielding',
+    name: 'Crookback Castle', logName: 'Crookback Castle',
+    sprite: { sheet: 'town', tile: 112 }, // a castle gate
+    arriveLines: [
+      'rode up to Crookback Castle. The drawbridge creaked down.',
+      'answered the challenge at the gates of Crookback Castle.',
+    ],
+    rumors: [
+      'Sir Grimsby holds Crookback Castle, and never yields.',
+      'A knight at Crookback Castle has jousted for centuries.',
+    ],
+  },
+
+  // ---- The Clawlands: the dragon dreams of an ancient war ----
   {
     kind: 'town', region: 'claws', at: [130, 142], recruitLevel: 20,
     name: 'Talonreach', logName: 'Talonreach',
-    arriveLines: ['reached Talonreach, a town of old walls and older soldiers.'],
+    arriveLines: [
+      'reached Talonreach, a town of old walls and older soldiers.',
+      'marched into Talonreach, where everyone stands up straight.',
+    ],
+    rumors: [
+      'Talonreach remembers a war nobody else does.',
+      'Old soldiers in Talonreach swap stories of the long war.',
+    ],
   },
+  {
+    kind: 'landmark', region: 'claws', at: [134, 118],
+    name: 'Old Battlefield', logName: 'the Old Battlefield',
+    sprite: { sheet: 'dungeon', tile: 102 }, // a fallen shield
+    arriveLines: [
+      'crossed the Old Battlefield, where the shields still lie.',
+      'reached the Old Battlefield. The grass grows in ranks.',
+    ],
+    rumors: [
+      'A battlefield where the war never quite finished.',
+      'Shields still lie on the Old Battlefield, uncollected.',
+    ],
+  },
+  {
+    kind: 'landmark', region: 'claws', at: [150, 126],
+    name: 'War Anvil', logName: 'the War Anvil',
+    sprite: { sheet: 'dungeon', tile: 74 }, // an anvil
+    arriveLines: [
+      'struck the War Anvil once. It rang for an hour.',
+      'reached the War Anvil, where every sword was forged.',
+    ],
+    rumors: [
+      'An anvil that forged every sword of the long war.',
+      'Strike the War Anvil, they say, and it remembers.',
+    ],
+  },
+  {
+    kind: 'landmark', region: 'claws', at: [166, 146],
+    name: 'Rusted Gate', logName: 'the Rusted Gate',
+    sprite: { sheet: 'town', tile: 125 }, // a stone gate
+    arriveLines: [
+      'passed through the Rusted Gate. There is no wall.',
+      'reached the Rusted Gate, standing alone in a field.',
+    ],
+    rumors: [
+      'A gate stands in an empty field, locked from both sides.',
+      'Nobody knows what the Rusted Gate once kept out.',
+    ],
+  },
+  {
+    kind: 'landmark', region: 'claws', at: [130, 158],
+    name: 'Great Furrows', logName: 'the Great Furrows',
+    sprite: { sheet: 'farm', tile: 88 }, // a curved hook, like a claw
+    arriveLines: [
+      'walked the Great Furrows, each as deep as a riverbed.',
+      'reached the Great Furrows. Something enormous dug them.',
+    ],
+    rumors: [
+      'Great furrows cut across the land, like a scratch.',
+      'The Great Furrows were dug by nobody, all at once.',
+    ],
+  },
+
+  {
+    kind: 'dungeon', region: 'claws', at: [118, 130], guardian: 'Buried Legionnaire',
+    name: 'Old Armory', logName: 'the Old Armory',
+    sprite: { sheet: 'town', tile: 86 }, // a wooden door
+    arriveLines: [
+      'broke into the Old Armory. The racks were not empty.',
+      'stepped into the Old Armory. Rusty blades rattled.',
+    ],
+    rumors: [
+      'The old army armory still has weapons, and guards.',
+      'The Old Armory was sealed at the end of the war. Nearly.',
+    ],
+  },
+  {
+    kind: 'dungeon', region: 'claws', at: [154, 134], guardian: 'Siege Ogre',
+    name: 'Siege Tunnels', logName: 'the Siege Tunnels',
+    sprite: { sheet: 'dungeon', tile: 55 }, // steps going down
+    arriveLines: [
+      'went down into the Siege Tunnels, dug for a war long over.',
+      'crept into the Siege Tunnels. Something heavy was digging.',
+    ],
+    rumors: [
+      'Tunnels dug beneath the old war, still being dug.',
+      'The Siege Tunnels run deep, and something still digs.',
+    ],
+  },
+
+  {
+    kind: 'castle', region: 'claws', at: [147, 161], boss: 'Bone Marshal',
+    name: 'Knucklebone Fortress', logName: 'Knucklebone Fortress',
+    sprite: { sheet: 'town', tile: 112 }, // a castle gate
+    arriveLines: [
+      'stormed the gate of Knucklebone Fortress.',
+      'marched into Knucklebone Fortress. The dead stood to attention.',
+    ],
+    rumors: [
+      'The Bone Marshal still musters an army at Knucklebone.',
+      'Drums beat in Knucklebone Fortress, for a war long lost.',
+    ],
+  },
+
+  // ---- Smokecrown: the dragon dreams of loneliness (opens in Act 3) ----
   {
     kind: 'town', region: 'smokecrown', at: [166, 42], recruitLevel: 24,
     name: 'Lastlight', logName: 'Lastlight',
-    arriveLines: ['reached Lastlight, where the lamps never go out.'],
+    arriveLines: [
+      'reached Lastlight, where the lamps never go out.',
+      'came to Lastlight. Every window had a candle in it, just in case.',
+      'walked into Lastlight, and the lamplighter waved.',
+    ],
+    rumors: [
+      'Lastlight keeps a lamp lit for every lost traveler.',
+      'Nobody who reaches Lastlight is ever quite alone again.',
+    ],
   },
-
-  // ---- Smokecrown ----
   {
     kind: 'landmark', region: 'smokecrown', at: [192, 54],
     name: 'The Smoking Nostril', logName: 'the Smoking Nostril',
     sprite: { sheet: 'creatures', tile: 55 }, // a flame
-    arriveLines: ['stood at the rim of the Smoking Nostril. It breathed out.'],
+    arriveLines: [
+      'stood at the rim of the Smoking Nostril. It breathed out.',
+      'reached the Smoking Nostril, and felt a warm, slow breath.',
+    ],
+    rumors: [
+      'The mountain at the edge of Smokecrown breathes in and out.',
+      'Smoke rises from the Nostril, in, and out, and in again.',
+    ],
+  },
+  {
+    kind: 'landmark', region: 'smokecrown', at: [177, 38],
+    name: 'Lidwater', logName: 'Lidwater',
+    sprite: { sheet: 'dungeon', tile: 56 }, // a still, round pool
+    arriveLines: [
+      'looked into Lidwater. For a moment, something looked back.',
+      'reached Lidwater, the lake that never ripples.',
+    ],
+    rumors: [
+      'Lidwater never ripples, not even in a storm.',
+      'The lake by Lastlight is shaped like a closed eye.',
+    ],
+  },
+  {
+    kind: 'landmark', region: 'smokecrown', at: [180, 56],
+    name: 'Jawbone Ridge', logName: 'Jawbone Ridge',
+    sprite: { sheet: 'dungeon', tile: 43 }, // an arch of stone teeth
+    arriveLines: [
+      'climbed Jawbone Ridge, a line of stones like enormous teeth.',
+      'reached Jawbone Ridge. The wind whistled through the gaps.',
+    ],
+    rumors: [
+      'Jawbone Ridge looks like teeth, if you squint.',
+      'The wind on Jawbone Ridge sounds like someone humming.',
+    ],
+  },
+  {
+    kind: 'landmark', region: 'smokecrown', at: [186, 44],
+    name: 'The Whisker Stones', logName: 'the Whisker Stones',
+    sprite: { sheet: 'town', tile: 43 }, // a ring of grey stones
+    arriveLines: [
+      'reached the Whisker Stones, long and thin and pointing north.',
+      'walked among the Whisker Stones. They twitched. Probably.',
+    ],
+    rumors: [
+      'The Whisker Stones twitch when a storm is coming.',
+      "Long grey stones stand in a row near Smokecrown's snout.",
+    ],
+  },
+  {
+    kind: 'dungeon', region: 'smokecrown', at: [152, 20], guardian: 'Forgotten Doll',
+    name: 'The Forgotten Attic', logName: 'the Forgotten Attic',
+    sprite: { sheet: 'dungeon', tile: 66 }, // an old wooden door
+    arriveLines: [
+      'climbed into the Forgotten Attic. Dust, and dolls, and silence.',
+      'opened the Forgotten Attic. Everything in it was waiting.',
+    ],
+    rumors: [
+      'An attic full of things nobody came back for.',
+      'Toys wait in the Forgotten Attic for children long grown.',
+    ],
+  },
+  {
+    kind: 'castle', region: 'smokecrown', at: [172, 14], boss: 'Forgotten King',
+    name: 'Hornhold', logName: 'Hornhold',
+    sprite: { sheet: 'town', tile: 112 }, // a castle gate
+    arriveLines: [
+      'climbed the horn to Hornhold. The gate stood open, expecting someone.',
+      'reached Hornhold, a castle on the very tip of the horn.',
+    ],
+    rumors: [
+      'A king rules Hornhold alone. Nobody remembers his name.',
+      'Hornhold stands on the horn of the world, and waits.',
+    ],
   },
 ];

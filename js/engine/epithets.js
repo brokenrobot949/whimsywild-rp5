@@ -7,7 +7,7 @@ import { rarities } from '../../data/items.js';
 export { closeCallShare };
 
 // Check the data once at startup, so a typo shows a clear message.
-const KINDS = ['slain', 'slainTotal', 'closeCalls', 'potions', 'goldFound', 'visits', 'found', 'level', 'skillRank', 'respects'];
+const KINDS = ['slain', 'slainTotal', 'closeCalls', 'potions', 'goldFound', 'visits', 'found', 'level', 'skillRank', 'respects', 'events', 'shards', 'dungeons', 'castles', 'verses'];
 for (const entry of epithets) {
   const owner = `The epithet "${entry.epithet}" in data/epithets.js`;
   const kind = Object.keys(entry.when).find((key) => KINDS.includes(key));
@@ -25,7 +25,7 @@ for (const entry of epithets) {
 
 // A fresh set of deed counters for a new life.
 export function newTally() {
-  return { slain: {}, closeCalls: 0, potions: 0, visits: {}, found: {}, respects: 0 };
+  return { slain: {}, closeCalls: 0, potions: 0, visits: {}, found: {}, respects: 0, events: 0, shards: 0, dungeons: 0, castles: 0, verses: 0 };
 }
 
 // A grander epithet than the hero's current one, if their deeds have earned it; otherwise null.
@@ -51,6 +51,11 @@ function earned(life, when) {
   if ('found' in when) return (tally.found[when.found] ?? 0) > 0;
   if ('level' in when) return hero.level >= when.level;
   if ('respects' in when) return (tally.respects ?? 0) >= when.respects;
+  if ('events' in when) return (tally.events ?? 0) >= when.events;
+  if ('shards' in when) return (tally.shards ?? 0) >= when.shards;
+  if ('dungeons' in when) return (tally.dungeons ?? 0) >= when.dungeons;
+  if ('castles' in when) return (tally.castles ?? 0) >= when.castles;
+  if ('verses' in when) return (tally.verses ?? 0) >= when.verses;
   if ('skillRank' in when) return Math.max(0, ...Object.values(hero.skills)) >= when.skillRank;
   return false;
 }

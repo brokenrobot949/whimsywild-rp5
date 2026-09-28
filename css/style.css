@@ -173,6 +173,8 @@ body[data-card="open"]:not([data-tab="adventure"]) #tabs [data-tab="adventure"]:
 .sheet h2 { margin: 0 0 10px; }
 .sheet h3 { margin: 18px 0 4px; font-size: 1rem; }
 .setting { display: flex; gap: 8px; align-items: center; font-weight: bold; cursor: pointer; }
+.setting.slider { margin: 8px 0; justify-content: space-between; }
+.setting.slider input { flex: 1; max-width: 70%; accent-color: var(--gold); }
 .hint { margin: 4px 0 8px; font-size: 0.85rem; color: var(--ink-soft); }
 .sheet textarea { width: 100%; margin: 6px 0; font: 12px/1.3 Consolas, ui-monospace, monospace; }
 
@@ -216,6 +218,47 @@ body[data-card="open"]:not([data-tab="adventure"]) #tabs [data-tab="adventure"]:
   box-shadow: 0 4px 0 rgba(0, 0, 0, 0.3);
   transform: translateX(-50%);
   animation: encounter-in 0.2s ease-out;
+}
+
+/* The dungeon panel: the rooms of the dungeon being explored, as a row of pips. */
+#dungeon {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  width: min(320px, calc(100% - 32px));
+  padding: 8px 12px;
+  background: var(--card);
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  box-shadow: 0 4px 0 rgba(0, 0, 0, 0.3);
+  text-align: center;
+  transform: translateX(-50%);
+  animation: dungeon-in 0.3s ease-out;
+}
+#dungeon-name { font-weight: bold; }
+#dungeon-rooms { display: flex; justify-content: center; gap: 7px; margin: 6px 0; padding: 0; list-style: none; }
+#dungeon-rooms li { width: 12px; height: 12px; border: 2px solid var(--ink-soft); border-radius: 50%; }
+#dungeon-rooms li.done { background: var(--ink-soft); }
+#dungeon-rooms li.current { border-color: var(--accent); background: var(--gold); }
+#dungeon-rooms li.guardian { border-radius: 3px; }
+#dungeon-rooms li.prize { border-radius: 2px; transform: rotate(45deg); }
+#dungeon-note { min-height: 1.2em; font-size: 0.85rem; color: var(--ink-soft); }
+
+/* A castle's panel has a red border, and the boss's room is marked in red. */
+#dungeon.castle { border-color: var(--accent); box-shadow: 0 4px 0 rgba(0, 0, 0, 0.3), inset 0 0 0 2px var(--gold); }
+#dungeon.castle #dungeon-rooms li.guardian { border-color: var(--accent); }
+
+/* The finale's Nightmare: a purple border, a dot for each dream, and a star for the song. */
+#dungeon.nightmare { border-color: #8a5a9e; box-shadow: 0 4px 0 rgba(0, 0, 0, 0.3), inset 0 0 0 2px #c9a8e0; }
+#dungeon-rooms li.song { border-color: #8a5a9e; border-radius: 2px; transform: rotate(45deg); }
+
+@keyframes dungeon-in {
+  from { opacity: 0; transform: translate(-50%, -10px); }
+}
+
+/* On narrow screens in debug mode, make room for the Debug button above the panel. */
+@media (max-width: 520px) {
+  body:has(#debug:not([hidden])) #dungeon { top: 46px; }
 }
 
 #encounter-sprite {
@@ -266,6 +309,8 @@ body[data-card="open"]:not([data-tab="adventure"]) #tabs [data-tab="adventure"]:
 #hero-name { font-size: 1.1rem; font-weight: bold; }
 #hero-facts { font-size: 0.9rem; }
 #hero-status { font-size: 0.85rem; font-style: italic; color: var(--ink-soft); }
+#hero-status-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+#hero-dream { font-size: 0.8rem; color: #5b4bc4; white-space: nowrap; }
 
 /* ---- Bars (HP, experience) ---- */
 
@@ -323,6 +368,55 @@ body[data-card="open"]:not([data-tab="adventure"]) #tabs [data-tab="adventure"]:
 .log-epithet { color: #9a3f8c; font-weight: bold; }
 .log-discovery { color: #2f6f8a; font-weight: bold; }
 .log-grave { color: #5e5872; font-style: italic; }
+.log-event { color: #7a4a1c; }
+.log-dream { color: #5b4bc4; font-style: italic; }
+.log-tremor { color: #8a3b1c; font-weight: bold; }
+.log-shard { color: #5b4bc4; font-weight: bold; }
+.log-conquest { color: #a4471a; font-weight: bold; }
+.log-verse { color: #8a5a9e; font-weight: bold; }
+.log-finale { color: #8a5a9e; font-weight: bold; font-style: italic; }
+.log-story { color: #8a5a9e; font-style: italic; }
+.log-tavern { color: #6b5a4a; font-style: italic; }
+.verse-words { margin: 2px 0; font-style: italic; color: #5e4a6e; }
+
+/* The map shakes when the Sleeper stirs. */
+#map.shaking { animation: tremor 0.9s ease-out; }
+
+@keyframes tremor {
+  0%, 100% { transform: translate(0, 0); }
+  10% { transform: translate(-6px, 2px); }
+  20% { transform: translate(5px, -3px); }
+  30% { transform: translate(-5px, -2px); }
+  40% { transform: translate(4px, 3px); }
+  55% { transform: translate(-3px, 1px); }
+  70% { transform: translate(2px, -1px); }
+  85% { transform: translate(-1px, 1px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #map.shaking { animation: none; }
+}
+
+.dream-line {
+  margin: 0 0 10px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: rgba(91, 75, 196, 0.1);
+  color: #3f3390;
+}
+
+.mentor-line {
+  margin: 0 0 10px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: rgba(184, 132, 31, 0.12);
+}
+.mentor-line ul { margin: 4px 0 0; padding-left: 18px; }
+.mentor-line li { margin: 2px 0; }
+.log-mentor { color: #8a6417; }
+
+.hero-background { margin: 0 0 10px; }
+.hero-background p { margin: 4px 0; }
 .log-depart,
 .log-camp { color: #6a5a3c; font-style: italic; }
 .log-start,
@@ -503,6 +597,48 @@ body[data-card="open"]:not([data-tab="adventure"]) #tabs [data-tab="adventure"]:
 #debug table { width: 100%; margin-top: 4px; border-collapse: collapse; }
 #debug th, #debug td { padding: 1px 6px 1px 0; text-align: left; white-space: nowrap; }
 #debug td:nth-child(2) { max-width: 110px; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---- The ending: every hero's name scrolls up the screen ---- */
+
+#ending {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+  overflow: hidden;
+  color: #efe6d4;
+  background: #0d0b14;
+}
+#ending-roll {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  left: 0;
+  width: min(520px, calc(100% - 32px));
+  margin: 0 auto;
+  text-align: center;
+}
+#ending h2 { margin: 0 0 12px; font-size: 1.8rem; color: var(--gold); }
+#ending .ending-intro { margin: 0 0 48px; font-style: italic; color: #b8a9c9; }
+#ending .credit { margin: 0 0 26px; }
+#ending .credit b { font-size: 1.1rem; }
+#ending .credit div { color: #b8a9c9; font-style: italic; }
+#ending-skip {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  padding: 6px 14px;
+  font: inherit;
+  color: #efe6d4;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+@keyframes ending-roll {
+  from { transform: translateY(0); }
+  to { transform: translateY(calc(-100% - 100vh)); }
+}
 
 /* ---- Error box ---- */
 

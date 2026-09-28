@@ -16,6 +16,10 @@ export const travel = {
   secondsPerTile: 0.4,    // seconds to cross one tile of normal ground (see "cost" in terrain.js)
   townRestSeasons: 2,     // seasons spent resting on reaching a town
   landmarkRestSeasons: 1, // seasons spent resting on reaching a landmark
+  // Heroes steer around regions whose lowest monster level is more than this many levels above
+  // their own (unless that's where they're headed), treating each step there as this many steps.
+  avoidRegionsAbove: 3,
+  dangerCost: 8,
 };
 
 // Wandering lines are small moments logged while the hero walks.
@@ -75,8 +79,13 @@ export const statusLines = {
   resting: 'Resting at {place}',
   camping: 'Camping near {place}',
   fighting: 'Fighting {a}',
+  dungeon: 'Exploring {place}, room {room} of {rooms}',
+  nightmare: 'Dreaming in {place}, room {room} of {rooms}',
+  castle: 'Storming {place}, room {room} of {rooms}',
   retired: 'Retired to {town}',
   died: 'Fell to {a}',
+  fell: 'Resting in peace', // died in a story event, not a fight
+  sang: 'Sang Sominus to sleep',
 };
 
 // Heroes who start in a later town begin at its recruitment level (see regions.js), with
@@ -92,6 +101,8 @@ export const newHeroText = {
   title: 'A new hero',
   nameLabel: 'Name',
   about: '{epithet}, age {age}',
+  originItem: 'Starts with {a}.', // after the origin's name. {a} is its item
+  quirk: '{quirk}:',              // before the quirk's description
   reroll: 'Reroll ({left} left)',
   noRerolls: 'No rerolls left',
   townsLabel: 'Where will they begin?',

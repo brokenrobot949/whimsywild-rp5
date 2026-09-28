@@ -17,12 +17,18 @@ export function createHero(seed, rng) {
     season: 0,  // position in the seasons list in data/life.js; 0 is Spring
     level: 1,
     xp: 0,      // experience towards the next level
+    origin: null, // the id of their origin (see origins.js)
+    quirk: null,  // the id of their quirk (see quirks.js)
+    dream: null,  // the id of tonight's dream, which they live under (see dreams.js)
+    mentors: [],  // what the retired heroes of their starting town taught them (see mentors.js)
     class: null, // the id of the hero's class, once they have one
+    classPath: [], // the ids of every class they've taken, in order (the base class, then advanced)
     skills: {}, // skill name → rank
     tags: Object.fromEntries(tags.map((tag) => [tag.id, 0])), // one point per skill pick
     base,       // stats from levels alone
     stats: null, // stats with gear, skills and class added; this is what fights use
-    effects: null, // always-on effects from skills and class (see skills.js)
+    effects: null, // always-on effects from skills, class and blessings (see skills.js)
+    blessings: [], // from story events: { name, effects, until (the season count it ends at) }
     hp: base.maxHp,
     gear: Object.fromEntries(slots.map((slot) => [slot.id, null])),
     gold: 0,
@@ -61,15 +67,17 @@ export function equip(hero, item) {
 export function learnSkill(hero, skill) {
   const rank = (hero.skills[skill.name] ?? 0) + 1;
   hero.skills[skill.name] = rank;
-  hero.tags[skill.tag] += 1;
+  if (skill.tag) hero.tags[skill.tag] += 1; // (verses of the lullaby have no tag)
   const before = hero.stats.maxHp;
   refreshStats(hero);
   hero.hp += Math.max(0, hero.stats.maxHp - before); // extra max HP arrives full
   return rank;
 }
 
+// Takes a class. The perks of earlier classes stay with the hero.
 export function takeClass(hero, classId) {
   hero.class = classId;
+  hero.classPath.push(classId);
   const before = hero.stats.maxHp;
   refreshStats(hero);
   hero.hp += Math.max(0, hero.stats.maxHp - before);

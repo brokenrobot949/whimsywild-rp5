@@ -3,7 +3,21 @@
 import { on } from './game-events.js';
 import { lifeStatus } from './life.js';
 import { rarityOf, itemStatsText } from './items.js';
-import { tagInfo, classById, skillByName, describeEffects } from './skills.js';
+import { tagInfo, skillChip, classById, classPath, skillByName, describeEffects, quirkById } from './skills.js';
+import { originById } from './background.js';
+import { dreamById } from './dreams.js';
+import { dreamText } from '../../data/dreams.js';
+import { mentorText, mentorSettings } from '../../data/mentors.js';
+import { residentsOf } from './mentors.js';
+import { shardById } from './shards.js';
+import { shards, shardText } from '../../data/shards.js';
+import { conquestOf, bossTitle } from './castles.js';
+import { castleText } from '../../data/castles.js';
+import { currentAct, actInfo, verseById, isSealed } from './story.js';
+import { storyText } from '../../data/story.js';
+import { finaleText } from '../../data/finale.js';
+import { verses, verseText, verseSettings } from '../../data/verses.js';
+import { regions } from '../../data/regions.js';
 import { chronicleStats } from './records.js';
 import { revealedShare } from './fog.js';
 import { logLine } from './ui.js';
@@ -76,17 +90,63 @@ export function createScreens({ art, world, getLife, getLives }) {
     panel.append(element('h3', '', heroTabText.stats));
     const stats = element('dl', 'stat-grid');
     const addStat = (label, value) => stats.append(element('dt', '', label), element('dd', '', value));
-    addStat(statNames.maxHp, `${Math.ceil(hero.hp)} / ${Math.round(hero.stats.maxHp)}`);
+    const maxHp = Math.ceil(hero.stats.maxHp);
+    addStat(statNames.maxHp, `${Math.min(Math.ceil(hero.hp), maxHp)} / ${maxHp}`);
     for (const stat of STAT_ORDER) addStat(capitalize(statNames[stat]), Number(hero.stats[stat].toFixed(1)));
     addStat(heroTabText.gold, hero.gold.toLocaleString());
     addStat(heroTabText.potions, hero.potions);
     panel.append(stats);
 
+    // Origin and quirk
+    const origin = originById(hero.origin);
+    const quirk = quirkById(hero.quirk);
+    if (origin || quirk) {
+      panel.append(element('h3', '', heroTabText.background));
+      const list = element('ul', 'plain-list');
+      if (origin) {
+        const tag = tagInfo(origin.tag);
+        const chip = element('span', 'tag-chip', tag.id);
+        chip.style.background = tag.color;
+        const item = element('li');
+        item.append(element('b', '', origin.name), ' ', chip, element('div', 'flavor', origin.flavor));
+        list.append(item);
+      }
+      if (quirk) {
+        const item = element('li');
+        item.append(element('b', '', `${quirk.name}. `), quirk.about, element('div', 'muted', describeEffects(quirk.effects)));
+        list.append(item);
+      }
+      panel.append(list);
+    }
+
+    // What the starting town's mentors passed on
+    if (hero.mentors.length > 0) {
+      panel.append(element('h3', '', mentorText.heroTab));
+      const list = element('ul', 'plain-list');
+      for (const mentor of hero.mentors) {
+        const item = element('li');
+        item.append(element('b', '', `${mentor.name}: `), mentor.text ?? '');
+        list.append(item);
+      }
+      panel.append(list);
+    }
+
+    // Tonight's dream
+    const dream = dreamById(hero.dream);
+    if (dream) {
+      panel.append(element('h3', '', dreamText.label));
+      const line = element('p');
+      line.append(element('b', '', `${dream.name}. `), dream.text);
+      if (dream.effects) line.append(element('div', 'muted', describeEffects(dream.effects)));
+      panel.append(line);
+    }
+
     // Class path
     panel.append(element('h3', '', heroTabText.path));
     const path = element('ul', 'plain-list');
+    const taken = classPath(hero);
     for (const step of evolutions) {
-      const chosen = step.tier === 1 ? heroClass : null;
+      const chosen = taken.find((option) => option.tier === step.tier);
       const offered = classes.some((option) => option.tier === step.tier);
       const item = element('li');
       item.append(element('b', '', `Level ${step.level}: `));
@@ -98,6 +158,19 @@ export function createScreens({ art, world, getLife, getLives }) {
       path.append(item);
     }
     panel.append(path);
+
+    // Blessings from story events, while they last
+    if (hero.blessings.length > 0) {
+      panel.append(element('h3', '', heroTabText.blessings));
+      const list = element('ul', 'plain-list');
+      for (const blessing of hero.blessings) {
+        const item = element('li');
+        item.append(element('b', '', `${blessing.name}. `), describeEffects(blessing.effects));
+        item.append(element('div', 'muted', fill(heroTabText.blessingLeft, { seasons: blessing.until - life.seasonsPassed })));
+        list.append(item);
+      }
+      panel.append(list);
+    }
 
     // Tags
     panel.append(element('h3', '', heroTabText.tags));
@@ -124,7 +197,7 @@ export function createScreens({ art, world, getLife, getLives }) {
       const list = element('ul', 'plain-list');
       for (const [name, rank] of known) {
         const skill = skillByName(name);
-        const tag = tagInfo(skill.tag);
+        const tag = skillChip(skill);
         const item = element('li');
         const chip = element('span', 'tag-chip', tag.id);
         chip.style.background = tag.color;
@@ -177,6 +250,8 @@ export function createScreens({ art, world, getLife, getLives }) {
     const add = (label, value) => list.append(element('dt', '', label), element('dd', '', value));
     const counted = (entry) => (entry ? fill(chronicleText.countValue, entry) : chronicleText.none);
     const towns = world.places.filter((place) => place.kind === 'town');
+    const act = currentAct(world);
+    add(storyText.chronicleAct, world.finale ? fill(finaleText.chronicleDone, { name: world.finale.hero, epithet: world.finale.epithet, age: world.finale.age }) : fill(storyText.actValue, actInfo(act)));
     add(chronicleText.mapRevealed, `${Math.floor(revealedShare(world) * 100)}%`);
     add(chronicleText.townsFound, fill(chronicleText.townsValue, {
       found: towns.filter((town) => world.discovered.has(town.name)).length,
@@ -202,6 +277,74 @@ export function createScreens({ art, world, getLife, getLives }) {
     add(chronicleText.commonClass, counted(stats.commonClass));
     add(chronicleText.longest, fill(chronicleText.longestValue, stats.longest));
     add(chronicleText.highest, fill(chronicleText.highestValue, stats.highest));
+    // The retired heroes of each town: the newest are its mentors, the rest residents.
+    for (const town of towns) {
+      const residents = residentsOf(world, town.name);
+      if (residents.length === 0) continue;
+      const shown = residents.slice(0, mentorSettings.gifts).map((mentor) => `${mentor.name} ${mentor.epithet}`);
+      const more = residents.length - shown.length;
+      if (more > 0) shown.push(fill(mentorText.residents[more === 1 ? 0 : 1], { count: more }));
+      add(fill(mentorText.chronicle, { town: town.name }), shown.join(', '));
+    }
+
+    // Monster castles: who holds each one that's been found, or who conquered it.
+    const castles = world.places.filter((place) => place.kind === 'castle' && !isSealed(world, place.region));
+    panel.append(element('h3', '', fill(castleText.chronicleHeading, { conquered: world.conquered.length, total: castles.length })));
+    const castleList = element('ul', 'plain-list');
+    for (const castle of castles.filter((place) => world.discovered.has(place.name))) {
+      const conquest = conquestOf(world, castle.name);
+      const item = element('li');
+      item.append(
+        element('b', '', castle.name),
+        element('div', 'muted', conquest ? fill(castleText.conquered, conquest) : fill(castleText.held, { boss: bossTitle(castle) })),
+      );
+      castleList.append(item);
+    }
+    const hidden = castles.filter((place) => !world.discovered.has(place.name)).length;
+    if (hidden > 0) castleList.append(element('li', 'muted', hidden === 1 ? castleText.hiddenOne : fill(castleText.hidden, { count: hidden })));
+    panel.append(castleList);
+
+    // The lullaby, once it's known: the verses found so far, with their words.
+    if (act >= verseSettings.findFromAct) {
+      panel.append(element('h3', '', fill(verseText.heading, { found: world.verses.length, total: verses.length })));
+      const song = element('ul', 'plain-list verse-list');
+      for (const found of world.verses) {
+        const verse = verseById(found.id);
+        const place = world.places.find((option) => option.name === verse.place);
+        const item = element('li');
+        const words = element('div', 'verse-words');
+        for (const line of verse.lines) words.append(element('div', '', line));
+        item.append(
+          element('b', '', verse.title),
+          words,
+          element('div', 'muted', fill(verseText.foundBy, { place: place?.logName ?? verse.place, hero: found.hero, age: found.age })),
+        );
+        song.append(item);
+      }
+      const lost = verses.length - world.verses.length;
+      if (lost > 0) song.append(element('li', 'muted', lost === 1 ? verseText.lostOne : fill(verseText.lost, { count: lost })));
+      panel.append(song);
+    }
+
+    // Dream shards, in the order they were found.
+    panel.append(element('h3', '', fill(shardText.heading, { found: world.shards.length, total: shards.length })));
+    if (world.shards.length === 0) {
+      panel.append(element('p', 'muted', shardText.none));
+      return;
+    }
+    const lore = element('ul', 'plain-list shard-list');
+    for (const found of world.shards) {
+      const shard = shardById(found.id);
+      const place = world.places.find((option) => option.name === shard.place);
+      const item = element('li');
+      item.append(
+        element('b', '', shard.title),
+        element('div', 'flavor', shard.text),
+        element('div', 'muted', fill(shardText.foundAt, { place: place?.logName ?? shard.place, hero: found.hero })),
+      );
+      lore.append(item);
+    }
+    panel.append(lore);
   }
 
   // ---- Hall of Champions ----
@@ -232,6 +375,9 @@ export function createScreens({ art, world, getLife, getLives }) {
         element('div', '', `${record.className ? `${record.className} · ` : ''}Level ${record.level}`),
         element('div', 'muted', fill(hallText.ageLine, { age: record.age, town: record.startTown })),
       );
+      // Heroes from before origins, quirks and dreams have none of them.
+      const background = [record.origin, record.quirk, record.dream].filter(Boolean).join(' · ');
+      if (background) text.append(element('div', 'muted', background));
       if (record.deed) text.append(element('div', '', fill(hallText.deed, { deed: record.deed }))); // older saves have none
       text.append(element('div', 'flavor', record.endingText));
       card.append(text);

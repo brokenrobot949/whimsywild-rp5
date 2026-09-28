@@ -35,6 +35,11 @@
   <main id="app">
     <section id="map-pane">
       <canvas id="map" aria-label="World map"></canvas>
+      <div id="dungeon" hidden>
+        <div id="dungeon-name"></div>
+        <ol id="dungeon-rooms" aria-hidden="true"></ol>
+        <div id="dungeon-note"></div>
+      </div>
       <div id="encounter" hidden>
         <canvas id="encounter-sprite" width="16" height="16"></canvas>
         <div class="encounter-info">
@@ -51,7 +56,7 @@
           <div id="hero-facts"><span id="hero-class"></span>Level <b id="hero-level"></b> · Age <b id="hero-age"></b> · <span id="hero-season"></span></div>
           <div class="bar hp-bar" title="Hit points"><div id="hero-hp" class="fill"></div><span id="hero-hp-text"></span></div>
           <div class="bar xp-bar" title="Experience towards the next level"><div id="hero-xp" class="fill"></div></div>
-          <div id="hero-status"></div>
+          <div id="hero-status-row"><div id="hero-status"></div><div id="hero-dream"></div></div>
         </header>
         <ol id="log"></ol>
       </div>
@@ -83,6 +88,12 @@
       <label class="setting"><input type="checkbox" id="setting-auto"> Auto-decide choices</label>
       <p class="hint">The hero makes each skill and class choice after a short pause, by their tags.</p>
 
+      <h3>Sound</h3>
+      <label class="setting"><input type="checkbox" id="setting-mute"> Mute all sound</label>
+      <label class="setting slider">Music <input type="range" id="setting-music" min="0" max="100" step="5"></label>
+      <label class="setting slider">Effects <input type="range" id="setting-effects" min="0" max="100" step="5"></label>
+      <p class="hint">Sound starts after your first tap. The music is a lullaby played on a little music box.</p>
+
       <h3>Back up your progress</h3>
       <p class="hint">Your progress lives in this browser only. Clearing site data erases it. Copy this save code somewhere safe to back it up, or to move it to another device.</p>
       <button type="button" id="save-copy">Copy save code</button>
@@ -93,9 +104,14 @@
       <button type="button" id="save-load">Load this save</button>
       <p id="save-message" role="status"></p>
 
-      <p class="credits">Art: Tiny Town, Tiny Farm and Tiny Dungeon by Kenney (kenney.nl). Tiny Creatures by Clint Bellanger. All CC0.</p>
+      <p class="credits">Art: Tiny Town, Tiny Farm and Tiny Dungeon by Kenney (kenney.nl). Tiny Creatures by Clint Bellanger. All CC0. Sound and music are made in code for this game.</p>
       <button type="button" id="settings-close" class="primary">Close</button>
     </div>
+  </div>
+
+  <div id="ending" hidden>
+    <div id="ending-roll"></div>
+    <button type="button" id="ending-skip"></button>
   </div>
 
   <details id="debug" hidden></details>

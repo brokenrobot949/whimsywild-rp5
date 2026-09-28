@@ -1,5 +1,5 @@
 // Startup, the game loop, and saving.
-import { buildWorld } from './engine/map.js';
+import { buildWorld, refreshSeals } from './engine/map.js';
 import {
   createLife, beginLife, stepLife, lifeRecord, lifeStatus, currentChoice, autoChoice, makeChoice,
   packLife, unpackLife, startingTowns, nameHero,
@@ -11,15 +11,22 @@ import { createMapView } from './engine/map-view.js';
 import { createUi } from './engine/ui.js';
 import { createScreens } from './engine/screens.js';
 import { createSettingsPanel } from './engine/settings-panel.js';
+import { createAudio } from './engine/audio.js';
 import { createDebugPanel } from './engine/debug.js';
 import { loadArt } from './engine/art.js';
 import { packFog, unpackFog } from './engine/fog.js';
 import { loadGraves } from './engine/graves.js';
+import { loadMentors, mentorsFor } from './engine/mentors.js';
+import { loadShards } from './engine/shards.js';
+import { loadConquered } from './engine/castles.js';
+import { loadVerses, unseenActs, skipToNextAct, currentAct, actInfo } from './engine/story.js';
+import { dreamById, rollDream } from './engine/dreams.js';
 import { regionAt } from './engine/map.js';
 import { regions } from '../data/regions.js';
 import { cards, lifeClock } from '../data/life.js';
 import { autoDecideSeconds } from '../data/skills.js';
 import { keepLogs, resumeCard, settingsText } from '../data/records.js';
+import { storyText } from '../data/story.js';
 
 // The simulation moves forward in fixed steps of this many game seconds, so a life
 // plays out exactly the same at any speed, and replays exactly from its seed
@@ -38,8 +45,15 @@ const world = buildWorld();
 // What earlier heroes explored. The first town is always known.
 unpackFog(world, save.world.revealed);
 world.discovered = new Set(save.world.discovered);
-world.discovered.add(world.places.find((place) => place.kind === 'town' && !regions[place.region].sealed).name);
+world.discovered.add(world.places.find((place) => place.kind === 'town' && !regions[place.region].sealed && !regions[place.region].opensInAct).name);
 world.graves = loadGraves(save.world.graves);
+world.mentors = loadMentors(save.world.mentors);
+world.shards = loadShards(save.world.shards);
+world.conquered = loadConquered(save.world.conquered);
+world.verses = loadVerses(save.world.verses);
+world.actSeen = save.world.actSeen ?? 1;
+world.finale = save.world.finale ?? null; // who sang the dragon to sleep, once someone has
+refreshSeals(world); // regions the story has opened
 const art = await loadArt();
 const ui = createUi(art);
 const mapView = createMapView(document.getElementById('map'), world, art, {
@@ -56,9 +70,11 @@ let lastSaved = 0;
 let warnedSaveFailed = false;
 
 const screens = createScreens({ art, world, getLife: () => life, getLives: () => save.lives });
+const audio = createAudio(); // silent until the player's first tap
 const settings = createSettingsPanel({
   getAutoDecide: () => save.settings.autoDecide,
   setAutoDecide,
+  audio,
   makeCode: () => {
     saveProgress(true);
     return exportCode(save);
@@ -84,6 +100,27 @@ const debug = debugMode
       clearSave();
       location.reload();
     },
+    getStory: () => (world.finale ? `Finished, sung by ${world.finale.hero}` : `Act ${currentAct(world)} · ${world.conquered.length} castles · ${world.verses.length} verses`),
+    onNextAct: () => {
+      skipToNextAct(world);
+      refreshSeals(world);
+      saveProgress(true);
+      screens.refresh();
+      debug.refresh();
+    },
+    onPreviewEnding: () => {
+      pauses.add('ending');
+      ui.showEnding(save.lives, () => {
+        // The ending's closing card replaced whatever card was up, so put things back.
+        pauses.delete('ending');
+        if (!life.begun) showNewHeroCard();
+        else if (life.ending) startLife(randomSeed());
+        else {
+          pauses.delete('card');
+          if (currentChoice(life)) offerChoice();
+        }
+      }, { ...actInfo(4).interlude, button: storyText.interludeButton }); // Act 4's card, as in play
+    },
   })
   : null;
 
@@ -105,7 +142,17 @@ function saveProgress(force = false) {
   if (!force && now - lastSaved < AUTOSAVE_MS) return;
   lastSaved = now;
   save.current = life && !life.ending ? packLife(life) : null;
-  save.world = { revealed: packFog(world.fog), discovered: [...world.discovered], graves: world.graves };
+  save.world = {
+    revealed: packFog(world.fog),
+    discovered: [...world.discovered],
+    graves: world.graves,
+    mentors: world.mentors,
+    shards: world.shards,
+    conquered: world.conquered,
+    verses: world.verses,
+    actSeen: world.actSeen,
+    finale: world.finale,
+  };
   if (!writeSave(save) && !warnedSaveFailed) {
     warnedSaveFailed = true;
     window.showStartupError?.(settingsText.saveFailed);
@@ -115,17 +162,44 @@ function saveProgress(force = false) {
 for (const name of ['arrive', 'birthday', 'level-up']) on(name, () => saveProgress());
 on('discovery', () => saveProgress(true));
 on('respects', () => saveProgress(true));
+on('shard', () => saveProgress(true));
+on('castle-conquered', () => saveProgress(true));
+on('verse', () => saveProgress(true));
+on('finale-open', () => saveProgress(true));
 
 // ---- Lives ----
 
 // Rolls a new hero in the given town (or the town last started from) and shows the New Hero card.
-function startLife(seed, town = defaultTown(), rerollsLeft = null) {
-  life = createLife(world, seed, { town });
+// Tonight's dream stays the same through rerolls and changes of town; each new hero after a
+// finished life gets a new one.
+function startLife(seed, town = defaultTown(), rerollsLeft = null, dream = newDream()) {
+  life = createLife(world, seed, { town, dream });
   if (rerollsLeft !== null) life.rerollsLeft = rerollsLeft;
   if (typedName) nameHero(life, typedName);
   showLife();
   saveProgress(true);
-  showNewHeroCard();
+  showInterludes(showNewHeroCard);
+}
+
+// Before a new hero, the interlude of each act that has begun since the player last saw one.
+function showInterludes(then) {
+  const [act] = unseenActs(world);
+  if (!act) {
+    then();
+    return;
+  }
+  pauses.add('card');
+  screens.show('adventure');
+  ui.showMessage({ ...act.interlude, button: storyText.interludeButton }, {}, () => {
+    world.actSeen = act.act;
+    saveProgress(true);
+    showInterludes(then);
+  });
+}
+
+// A dream for the next hero, never the same as the last hero's.
+function newDream() {
+  return rollDream(Math.random, life?.hero.dream, currentAct(world));
 }
 
 // The town the last hero started from, if it's still a starting town, or else the first town.
@@ -146,7 +220,7 @@ function resumeLife() {
   showLife();
   if (!life.begun) {
     typedName = life.hero.name === life.rolledName ? '' : life.hero.name;
-    showNewHeroCard();
+    showInterludes(showNewHeroCard);
     return true;
   }
   pauses.add('card');
@@ -170,15 +244,16 @@ function showNewHeroCard() {
   mapView.showStartingTowns({ towns, chosen: life.startTown });
   ui.showNewHero({
     towns,
+    mentorCount: (town) => mentorsFor(world, town.name).length,
     typed: typedName,
     onName: (text) => {
       typedName = text;
       nameHero(life, text);
       saveProgress();
     },
-    onReroll: () => startLife(randomSeed(), life.startTown, life.rerollsLeft - 1),
+    onReroll: () => startLife(randomSeed(), life.startTown, life.rerollsLeft - 1, life.hero.dream),
     // The same hero, moved to another town.
-    onTown: (town) => startLife(life.hero.seed, town, life.rerollsLeft),
+    onTown: (town) => startLife(life.hero.seed, town, life.rerollsLeft, life.hero.dream),
     onBegin: () => {
       mapView.showStartingTowns(null);
       pauses.delete('card');
@@ -199,10 +274,13 @@ function finishLife() {
   screens.refresh();
   pauses.add('card');
   screens.show('adventure');
-  ui.showMessage(cards.end, cardValues(), () => startLife(randomSeed()));
+  // The hero who sang the dragon to sleep: their card, then the ending, then the next hero.
+  const next = life.ending.kind === 'sang' ? () => ui.showEnding(save.lives, () => startLife(randomSeed())) : () => startLife(randomSeed());
+  ui.showMessage(cards.end, cardValues(), next);
 }
 
-// Shows the waiting skill or class choice. The clock stays stopped until every waiting choice is made.
+// Shows the waiting choice (a skill, class, rumor or story event). The clock stays stopped
+// until every waiting choice is made.
 function offerChoice() {
   pauses.add('choice');
   saveProgress(true);
@@ -216,9 +294,10 @@ function offerChoice() {
     },
     onPick: (index) => {
       makeChoice(life, index);
-      saveProgress(true);
-      if (currentChoice(life)) offerChoice();
-      else pauses.delete('choice');
+      pauses.delete('choice');
+      if (life.ending) finishLife(); // a story event can end a life
+      else if (currentChoice(life)) offerChoice();
+      else saveProgress(true);
     },
   });
 }
@@ -275,8 +354,10 @@ document.addEventListener('visibilitychange', () => {
 });
 window.addEventListener('pagehide', () => saveProgress(true));
 
-// In debug mode, ?debug&seed=12345 starts the hero with that seed (replacing any hero in progress).
+// In debug mode, ?debug&seed=12345 starts the hero with that seed (replacing any hero in progress),
+// and &dream=gold gives them that dream, so a life can be replayed exactly.
 const seedParam = Number(params.get('seed'));
-if (debugMode && params.has('seed') && Number.isInteger(seedParam)) startLife(seedParam >>> 0);
+const dreamParam = dreamById(params.get('dream'))?.id;
+if (debugMode && params.has('seed') && Number.isInteger(seedParam)) startLife(seedParam >>> 0, undefined, null, dreamParam ?? newDream());
 else if (!resumeLife()) startLife(randomSeed());
 requestAnimationFrame(frame);

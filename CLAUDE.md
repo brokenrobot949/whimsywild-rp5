@@ -8,7 +8,7 @@ Whimsywild RP5 is a whimsical high-fantasy browser RPG. Each hero lives a roughl
 - After each change, explain in plain language what changed, how to see it working, and anything Rob needs to do.
 - If the design is unclear, or a technical limit would change the design, ask Rob instead of guessing.
 - When Rob changes a design decision, update `docs/DESIGN.md` so it stays the source of truth.
-- Build in the phases from `docs/DESIGN.md`, in small, testable slices. **Current phase: Phase 2 (The world).** Phase 1 (Core life) is complete: Rob confirmed the five-minute life feels good.
+- Build in the phases from `docs/DESIGN.md`, in small, testable slices. **Current phase: Phase 4 (The dragon).** Phase 1 (Core life) is complete: Rob confirmed the five-minute life feels good. Phase 2 (The world) is complete: four open regions, rumors, starting towns and graves. Phase 3 (Depth) is complete: advanced classes, story events, origins and quirks, tonight's dream, mentors, dream shards, tremors, and sound made in code. Every Phase 4 slice is built (dungeons, monster castles, the lullaby's verses and the acts, Smokecrown, the finale and the post-game), and is waiting on Rob's playtest before Phase 4 is called complete.
 - Rob commits and pushes with GitHub Desktop. Do not run `git push` unless Rob asks.
 
 ## Hard constraints
@@ -55,8 +55,8 @@ whimsywild-rp5/
 ## Art and audio
 
 - Art: Kenney CC0 pixel-art packs from one family (such as the Tiny series). Rob downloads the packs and adds the files to `assets/`. For monsters without a matching sprite, reuse existing sprites with recolors or tints.
-- Sheets in use (listed in `data/art.js`): `assets/tiles/tiny-town.png` (Kenney Tiny Town), `assets/sprites/tiny-dungeon.png` (Kenney Tiny Dungeon) and `assets/sprites/tiny-creatures.png` (Tiny Creatures by Clint Bellanger, CC0, made to match Tiny Dungeon). Each is a packed grid of 16 × 16 pictures with no gaps.
-- Audio (Phase 3): MP3 files only. Start audio only after the player's first tap. Include mute plus separate music and effects volume, saved under the `whimsywild-rp5:` key prefix.
+- Sheets in use (listed in `data/art.js`): `assets/tiles/tiny-town.png` (Kenney Tiny Town), `assets/tiles/tiny-farm.png` (Kenney Tiny Farm), `assets/sprites/tiny-dungeon.png` (Kenney Tiny Dungeon) and `assets/sprites/tiny-creatures.png` (Tiny Creatures by Clint Bellanger, CC0, made to match Tiny Dungeon). Each is a packed grid of 16 × 16 pictures with no gaps.
+- Audio (Phase 3): made in code with the Web Audio API (no audio files); the sound recipes and the lullaby live in `data/audio.js`. Start audio only after the player's first tap. Include mute plus separate music and effects volume, saved under the `whimsywild-rp5:` key prefix.
 
 ## Tone and writing
 

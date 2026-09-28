@@ -27,7 +27,7 @@ export const encounters = {
   levelOffsets: [-1, 0, 0, 1],
   // Each monster level adds this share of its level-1 HP, power and defense. A little faster
   // than the hero's own growth, so monsters keep up with heroes who have gear and skills.
-  monsterGrowth: 0.24,
+  monsterGrowth: 0.25,
 };
 
 export const blows = {

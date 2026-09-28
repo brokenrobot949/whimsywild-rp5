@@ -19,6 +19,19 @@
 //   equip       the hero puts on an item      { hero, item }
 //   shop        the hero has been shopping    { life, town }
 //   respects    the hero takes a grave's heirloom { life, grave }
+//   story-event a story event plays out       { life, event, option, worked }
+//   tremor      the Sleeper stirs and the ground shakes { life, event }
+//   shard       a dream shard is found        { life, shard }
+//   dungeon-enter  the hero goes into a dungeon or castle { life }
+//   dungeon-room   the hero enters the next room { life, room }
+//   dungeon-leave  the hero comes out            { life, place, cleared }
+//   boss-move      a castle boss uses its special move { life, move, damage or healed }
+//   castle-conquered  a castle falls, for good  { life, place }
+//   verse       a verse of the lullaby is found, for good { life, verse }
+//   act         a new act of the story begins  { life, act }
+//   finale-open the last verse is found, and the way into the Nightmare opens { life }
+//   song-verse  a verse is sung, in the finale  { life, verse }
+//   finale      the song is finished, and the story with it { life }
 //   death       the hero dies (and life.ending.grave is their grave) { life }
 //   log         a new adventure log line      { entry }
 //   life-end    the life is over              { life }
