@@ -239,7 +239,11 @@ body[data-card="open"]:not([data-tab="adventure"]) #tabs [data-tab="adventure"]:
   width: 100%;
   height: 100%;
   image-rendering: pixelated;
+  cursor: grab;
+  touch-action: none; /* dragging the map shouldn't scroll the page */
 }
+
+#map:active { cursor: grabbing; }
 
 /* ---- Hero strip and log ---- */
 
@@ -316,6 +320,11 @@ body[data-card="open"]:not([data-tab="adventure"]) #tabs [data-tab="adventure"]:
 .log-level { color: #9a6a12; font-weight: bold; }
 .log-skill,
 .log-class { color: #5b4bc4; font-weight: bold; }
+.log-epithet { color: #9a3f8c; font-weight: bold; }
+.log-discovery { color: #2f6f8a; font-weight: bold; }
+.log-grave { color: #5e5872; font-style: italic; }
+.log-depart,
+.log-camp { color: #6a5a3c; font-style: italic; }
 .log-start,
 .log-end { color: var(--accent); font-weight: bold; }
 
@@ -381,7 +390,7 @@ body[data-card="open"]:not([data-tab="adventure"]) #tabs [data-tab="adventure"]:
 .card .option.primary:hover { filter: brightness(1.08); }
 
 .option-title { font-weight: bold; }
-.option-note { font-size: 0.8rem; color: var(--ink-soft); }
+.option-note { font-size: 0.8rem; color: var(--ink-soft); white-space: nowrap; }
 .option-detail { display: block; margin-top: 2px; font-size: 0.88rem; }
 .option-flavor { display: block; margin-top: 2px; font-size: 0.8rem; font-style: italic; color: var(--ink-soft); }
 
@@ -395,6 +404,39 @@ body[data-card="open"]:not([data-tab="adventure"]) #tabs [data-tab="adventure"]:
   vertical-align: 1px;
   border-radius: 8px;
 }
+
+/* The New Hero card */
+.card .field { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; color: var(--ink-soft); }
+
+.card .field input {
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 1.05rem;
+  font-weight: bold;
+  color: var(--ink);
+  background: #fff;
+  border: 2px solid rgba(46, 36, 51, 0.35);
+  border-radius: 8px;
+}
+
+.card .field-label { margin: 10px 0 0; font-size: 0.85rem; color: var(--ink-soft); }
+.card .town-list { display: flex; flex-direction: column; gap: 6px; }
+.card .town-list .option { padding: 6px 12px; }
+
+.card button.small {
+  align-self: flex-start;
+  padding: 4px 12px;
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--ink);
+  background: #fff;
+  border: 1px solid rgba(46, 36, 51, 0.4);
+  border-radius: 14px;
+  cursor: pointer;
+}
+
+.card button.small:disabled { opacity: 0.5; cursor: default; }
+.card .muted { margin: 0; }
 
 #card-auto {
   display: flex;

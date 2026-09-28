@@ -8,7 +8,7 @@ Whimsywild RP5 is a whimsical high-fantasy browser RPG. Each hero lives a roughl
 - After each change, explain in plain language what changed, how to see it working, and anything Rob needs to do.
 - If the design is unclear, or a technical limit would change the design, ask Rob instead of guessing.
 - When Rob changes a design decision, update `docs/DESIGN.md` so it stays the source of truth.
-- Build in the phases from `docs/DESIGN.md`, in small, testable slices. **Current phase: Phase 1 (Core life).**
+- Build in the phases from `docs/DESIGN.md`, in small, testable slices. **Current phase: Phase 2 (The world).** Phase 1 (Core life) is complete: Rob confirmed the five-minute life feels good.
 - Rob commits and pushes with GitHub Desktop. Do not run `git push` unless Rob asks.
 
 ## Hard constraints

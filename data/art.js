@@ -1,11 +1,12 @@
 // The art sheets the game uses. Each sheet is a grid of 16 × 16 pictures, numbered
 // from 0 at the top left, counting left to right, then row by row.
 //
-// All three are CC0, so they're free to use. Crediting is optional but courteous:
-//   Tiny Town and Tiny Dungeon by Kenney (kenney.nl)
+// All are CC0, so they're free to use. Crediting is optional but courteous:
+//   Tiny Town, Tiny Farm and Tiny Dungeon by Kenney (kenney.nl)
 //   Tiny Creatures by Clint Bellanger, made to match Tiny Dungeon
 export const sheets = {
   town: './assets/tiles/tiny-town.png',             // 12 pictures per row: ground, trees, houses, props
+  farm: './assets/tiles/tiny-farm.png',             // 12 per row: fields, crops, barns, farm animals
   dungeon: './assets/sprites/tiny-dungeon.png',     // 12 per row: heroes, items, dungeon pieces, a few monsters
   creatures: './assets/sprites/tiny-creatures.png', // 10 per row: monsters and animals
 };

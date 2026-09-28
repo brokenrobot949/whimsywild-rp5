@@ -1,16 +1,17 @@
 // Fights: making monsters, and trading blows.
-import { monsters, levelTitles } from '../../data/monsters.js';
+import { monsters } from '../../data/monsters.js';
+import { regions } from '../../data/regions.js';
 import { encounters, blows } from '../../data/combat.js';
 import { withArticle } from './text.js';
 
-// Makes a monster from the given region, at about the hero's level (Phase 1; see DESIGN.md).
+// Makes a monster from the given region, near the hero's level but within the region's levels.
 export function createMonster(rng, regionId, heroLevel) {
   const kinds = monsters.filter((kind) => kind.region === regionId);
   if (kinds.length === 0) throw new Error(`No monsters live in the region "${regionId}". Add some in data/monsters.js.`);
   const kind = rng.pickWeighted(kinds, (option) => option.weight ?? 1);
-  const level = Math.max(1, heroLevel + rng.pick(encounters.levelOffsets));
+  const [lowest, highest] = regions[regionId].levels;
+  const level = Math.min(highest, Math.max(lowest, heroLevel + rng.pick(encounters.levelOffsets)));
   const growth = 1 + encounters.monsterGrowth * (level - 1);
-  const title = levelTitles.filter((entry) => level >= entry.from).at(-1)?.title;
   const stats = {
     maxHp: kind.stats.maxHp * growth,
     power: kind.stats.power * growth,
@@ -18,7 +19,7 @@ export function createMonster(rng, regionId, heroLevel) {
     speed: kind.stats.speed,
     luck: kind.stats.luck,
   };
-  return { kind, level, name: title ? `${title} ${kind.name}` : kind.name, stats, hp: stats.maxHp };
+  return { kind, level, name: kind.name, stats, hp: stats.maxHp };
 }
 
 // Words for filling in lines: {a} "an Elder Grumpy Badger", {the} "the Elder Grumpy Badger".

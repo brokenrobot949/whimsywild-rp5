@@ -13,7 +13,7 @@ export const seasons = ['Spring', 'Summer', 'Autumn', 'Winter'];
 
 // Walking and resting.
 export const travel = {
-  secondsPerTile: 0.5,    // seconds to cross one tile of normal ground (see "cost" in terrain.js)
+  secondsPerTile: 0.4,    // seconds to cross one tile of normal ground (see "cost" in terrain.js)
   townRestSeasons: 2,     // seasons spent resting on reaching a town
   landmarkRestSeasons: 1, // seasons spent resting on reaching a landmark
 };
@@ -35,6 +35,13 @@ export const startLines = [
   'set out from {town} with a stout heart and a stale loaf.',
   'left {town} to seek fortune, glory, or at least lunch.',
   'waved goodbye to {town}. Nobody waved back, but it was early.',
+];
+
+// When a hero is the first ever to see a place. {place} is the place.
+export const discoveryLines = [
+  'spotted {place} for the very first time.',
+  'discovered {place}, and made a careful note of it.',
+  'came upon {place} as the fog lifted.',
 ];
 
 // When a hero leaves a town. {town} is the town, {place} is where they are heading.
@@ -64,20 +71,38 @@ export const retireLines = [
 // What the hero strip says the hero is doing. {a} is a monster, like "a Grumpy Badger".
 export const statusLines = {
   walking: 'Walking to {place}',
+  seeking: 'Following a rumor to the {direction}',
   resting: 'Resting at {place}',
+  camping: 'Camping near {place}',
   fighting: 'Fighting {a}',
   retired: 'Retired to {town}',
   died: 'Fell to {a}',
 };
 
-// The cards shown before and after each life.
+// Heroes who start in a later town begin at its recruitment level (see regions.js), with
+// modest gear, and make the skill and class choices they would have made on the way.
+export const recruits = {
+  gearSlots: ['weapon'],  // slots filled with Common gear of the town's level (not in a level 1 town)
+  rerolls: 3,                     // how many times the player can reroll a new hero
+  nameLength: 20,                 // the longest name the player can type
+};
+
+// The New Hero card, shown before each life. {words} are filled in automatically.
+export const newHeroText = {
+  title: 'A new hero',
+  nameLabel: 'Name',
+  about: '{epithet}, age {age}',
+  reroll: 'Reroll ({left} left)',
+  noRerolls: 'No rerolls left',
+  townsLabel: 'Where will they begin?',
+  town: '{town}',
+  townDetail: 'Level {level} · {region}',
+  begin: 'Begin',
+};
+
+// The card shown at the end of each life.
 // {name}, {epithet}, {age}, {level}, {town}, {years} and {ending} are filled in automatically.
 export const cards = {
-  start: {
-    title: '{name} {epithet}',
-    body: 'Age {age}, standing at the gate of {town}, ready for adventure. Mostly ready.',
-    button: 'Begin',
-  },
   end: {
     title: '{name} {epithet}',
     body: '{ending} {years} years of adventure, ending at level {level}.',

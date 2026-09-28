@@ -1,54 +1,37 @@
-// The world map: which terrain is where, where the places are, and how to walk between them.
+// The world map: which terrain and region is where, where the places are, and how to walk
+// between them. The map itself is generated in world-gen.js.
 import { terrain } from '../../data/terrain.js';
-import { regions, places, placeholderMap } from '../../data/regions.js';
+import { regions } from '../../data/regions.js';
+import { generateWorld } from './world-gen.js';
+import { findRoute } from './path.js';
 
-const MAP_FILE = 'data/regions.js';
+const REGIONS_FILE = 'data/regions.js';
 
-// Reads the map drawing from the data files, and checks it for mistakes so that
-// a typo shows a clear message instead of a broken game.
+// Builds the world, and checks the places make sense on it, so that a typo shows a clear
+// message instead of a broken game.
 export function buildWorld() {
-  const rows = placeholderMap;
-  const height = rows.length;
-  const width = rows[0].length;
-  const terrainBySymbol = new Map(Object.entries(terrain).map(([id, type]) => [type.symbol, id]));
-  const placeByMark = new Map(places.map((place) => [place.mark, place]));
-  const tiles = new Array(width * height);
-  const found = [];
+  const world = generateWorld();
+  const size = world.width * world.height;
+  // Tiles in regions not yet open to heroes, covered in dream-mist.
+  world.sealed = Uint8Array.from(world.regionOf, (region) => (region && regions[region].sealed ? 1 : 0));
+  world.cheapestCost = Math.min(...Object.values(terrain).filter((type) => type.walkable).map((type) => type.cost));
+  world.fog = new Uint8Array(size); // 1 where the fog has lifted
+  world.discovered = new Set();     // names of places heroes have seen
+  world.graves = [];                // where heroes fell (see graves.js)
+  world.landTiles = world.regionOf.filter(Boolean).length;
 
-  rows.forEach((row, y) => {
-    if (row.length !== width) {
-      throw new Error(`Map row ${y + 1} in ${MAP_FILE} is ${row.length} characters long, but row 1 is ${width}. Every row must be the same length.`);
+  for (const place of world.places) {
+    const region = world.regionOf[place.y * world.width + place.x];
+    if (!region) throw new Error(`${place.name} is at [${place.x}, ${place.y}], which is in the sea. Move it onto land in ${REGIONS_FILE}.`);
+    if (region !== place.region) {
+      throw new Error(`${place.name} belongs to ${regions[place.region].name}, but [${place.x}, ${place.y}] is in ${regions[region].name}. Move it, or change its region, in ${REGIONS_FILE}.`);
     }
-    [...row].forEach((symbol, x) => {
-      const place = placeByMark.get(symbol);
-      if (place) {
-        if (!terrain[place.ground]) throw new Error(`${place.name} has ground "${place.ground}", which is not a terrain in data/terrain.js.`);
-        tiles[y * width + x] = place.ground;
-        found.push({ ...place, x, y });
-        return;
-      }
-      const id = terrainBySymbol.get(symbol);
-      if (!id) throw new Error(`Unknown map symbol "${symbol}" at row ${y + 1}, column ${x + 1} in ${MAP_FILE}.`);
-      tiles[y * width + x] = id;
-    });
-  });
-
-  for (const place of places) {
-    const count = found.filter((spot) => spot.mark === place.mark).length;
-    if (count !== 1) throw new Error(`${place.name} (mark "${place.mark}") appears ${count} times on the map in ${MAP_FILE}. It should appear once.`);
-    if (!regions[place.region]) throw new Error(`${place.name} is in region "${place.region}", which is not in the regions list in ${MAP_FILE}.`);
-    if (!terrain[place.ground].walkable) throw new Error(`${place.name} stands on ${place.ground}, which heroes can't walk on.`);
   }
-
-  const walkableCosts = Object.values(terrain).filter((type) => type.walkable).map((type) => type.cost);
-  const world = { width, height, tiles, places: found, cheapestCost: Math.min(...walkableCosts) };
-
-  const town = found.find((place) => place.kind === 'town');
-  if (!town) throw new Error(`The map in ${MAP_FILE} needs at least one town.`);
-  for (const place of found) {
-    if (place !== town && !findPath(world, town, place)) {
-      throw new Error(`${place.name} can't be reached from ${town.name} on the map in ${MAP_FILE}. Check for water blocking the way.`);
-    }
+  const home = world.places.find((place) => place.kind === 'town' && !regions[place.region].sealed);
+  if (!home) throw new Error(`${REGIONS_FILE} needs at least one town in a region that isn't sealed.`);
+  for (const place of world.places) {
+    if (place === home || regions[place.region].sealed) continue;
+    if (!findPath(world, home, place)) throw new Error(`${place.name} can't be reached from ${home.name} on foot. Check for sea or sealed regions in the way.`);
   }
   return world;
 }
@@ -57,91 +40,17 @@ export function terrainAt(world, x, y) {
   return terrain[world.tiles[y * world.width + x]];
 }
 
-const DIRECTIONS = [[1, 0], [-1, 0], [0, 1], [0, -1]];
-
-// Finds the quickest walking route between two tiles (A* search).
-// Returns the tiles to step on in order, not counting the start, or null if there is no way through.
-export function findPath(world, from, to) {
-  const { width, height } = world;
-  const start = from.y * width + from.x;
-  const goal = to.y * width + to.x;
-  const cost = new Float64Array(width * height).fill(Infinity);
-  const cameFrom = new Int32Array(width * height).fill(-1);
-  const done = new Uint8Array(width * height);
-  const open = new MinHeap();
-  cost[start] = 0;
-  open.push(start, 0);
-
-  while (open.size > 0) {
-    const current = open.pop();
-    if (current === goal) break;
-    if (done[current]) continue;
-    done[current] = 1;
-    const cx = current % width;
-    const cy = (current - cx) / width;
-    for (const [dx, dy] of DIRECTIONS) {
-      const nx = cx + dx;
-      const ny = cy + dy;
-      if (nx < 0 || ny < 0 || nx >= width || ny >= height) continue;
-      const next = ny * width + nx;
-      const type = terrain[world.tiles[next]];
-      if (!type.walkable) continue;
-      const nextCost = cost[current] + type.cost;
-      if (nextCost < cost[next]) {
-        cost[next] = nextCost;
-        cameFrom[next] = current;
-        const guess = (Math.abs(nx - to.x) + Math.abs(ny - to.y)) * world.cheapestCost;
-        open.push(next, nextCost + guess);
-      }
-    }
-  }
-
-  if (cost[goal] === Infinity) return null;
-  const path = [];
-  for (let i = goal; i !== start; i = cameFrom[i]) path.push({ x: i % width, y: Math.floor(i / width) });
-  return path.reverse();
+export function regionAt(world, x, y) {
+  return world.regionOf[y * world.width + x];
 }
 
-// A queue that always hands back the item with the lowest priority first.
-class MinHeap {
-  constructor() {
-    this.items = [];
-  }
+// Heroes can walk on a tile if its terrain allows it and dream-mist doesn't cover it.
+export function isWalkable(world, index) {
+  return terrain[world.tiles[index]].walkable && !world.sealed[index];
+}
 
-  get size() {
-    return this.items.length;
-  }
-
-  push(value, priority) {
-    const items = this.items;
-    items.push({ value, priority });
-    let i = items.length - 1;
-    while (i > 0) {
-      const parent = (i - 1) >> 1;
-      if (items[parent].priority <= items[i].priority) break;
-      [items[parent], items[i]] = [items[i], items[parent]];
-      i = parent;
-    }
-  }
-
-  pop() {
-    const items = this.items;
-    const top = items[0];
-    const last = items.pop();
-    if (items.length > 0) {
-      items[0] = last;
-      let i = 0;
-      for (;;) {
-        const left = 2 * i + 1;
-        const right = left + 1;
-        let smallest = i;
-        if (left < items.length && items[left].priority < items[smallest].priority) smallest = left;
-        if (right < items.length && items[right].priority < items[smallest].priority) smallest = right;
-        if (smallest === i) break;
-        [items[smallest], items[i]] = [items[i], items[smallest]];
-        i = smallest;
-      }
-    }
-    return top.value;
-  }
+// The quickest walking route between two tiles, or null if there's no way through.
+export function findPath(world, from, to) {
+  const costOf = (index) => (isWalkable(world, index) ? terrain[world.tiles[index]].cost : Infinity);
+  return findRoute(world.width, world.height, costOf, world.cheapestCost, from, to);
 }

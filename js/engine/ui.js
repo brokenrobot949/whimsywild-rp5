@@ -4,9 +4,12 @@ import { on } from './game-events.js';
 import { lifeStatus } from './life.js';
 import { xpToNextLevel } from './hero.js';
 import { tagInfo, classById, skillRank, describeEffects } from './skills.js';
+import { skullsFor, directionTo, distanceWord } from './rumors.js';
+import { regions } from '../../data/regions.js';
+import { rumorText, danger } from '../../data/rumors.js';
 import { picture, TILE } from './art.js';
 import { fill } from './text.js';
-import { seasons } from '../../data/life.js';
+import { seasons, newHeroText, recruits } from '../../data/life.js';
 import { blowNotes } from '../../data/combat.js';
 import { choiceText } from '../../data/skills.js';
 
@@ -177,7 +180,7 @@ export function createUi(art) {
   }
 
   on('log', ({ entry }) => addEntry(entry));
-  for (const name of ['season', 'depart', 'arrive', 'fight-start', 'fight-end', 'level-up', 'potion', 'shop', 'choice-made', 'life-end']) {
+  for (const name of ['season', 'depart', 'arrive', 'fight-start', 'fight-end', 'level-up', 'potion', 'shop', 'choice-made', 'epithet', 'life-end']) {
     on(name, showHero);
   }
   on('fight-start', ({ monster }) => showEncounter(monster));
@@ -222,6 +225,79 @@ export function createUi(art) {
       rearmAuto?.(on);
     },
 
+    // The New Hero card: type a name, reroll, pick a starting town, then Begin.
+    //   towns    the towns to start from; the life's start town is shown as chosen
+    //   typed    the name the player has typed so far, if any
+    //   onName(text), onReroll(), onTown(town), onBegin()
+    showNewHero({ towns, typed, onName, onReroll, onTown, onBegin }) {
+      const { hero } = life;
+      clearTimeout(autoTimer);
+      rearmAuto = null;
+      card.title.textContent = newHeroText.title;
+      card.body.hidden = true;
+      card.auto.hidden = true;
+
+      const nameField = document.createElement('label');
+      nameField.className = 'field';
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.maxLength = recruits.nameLength;
+      input.value = typed ?? '';
+      input.placeholder = life.rolledName;
+      input.autocomplete = 'off';
+      input.addEventListener('input', () => {
+        onName(input.value);
+        showHero();
+      });
+      nameField.append(newHeroText.nameLabel, input);
+
+      const about = document.createElement('p');
+      about.className = 'muted';
+      about.textContent = fill(newHeroText.about, { epithet: hero.epithet, age: hero.age });
+
+      const reroll = document.createElement('button');
+      reroll.type = 'button';
+      reroll.className = 'small';
+      reroll.disabled = life.rerollsLeft <= 0;
+      reroll.textContent = life.rerollsLeft > 0 ? fill(newHeroText.reroll, { left: life.rerollsLeft }) : newHeroText.noRerolls;
+      reroll.onclick = onReroll;
+
+      const townsLabel = document.createElement('p');
+      townsLabel.className = 'field-label';
+      townsLabel.textContent = newHeroText.townsLabel;
+      const townList = document.createElement('div');
+      townList.className = 'town-list';
+      for (const town of towns) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = `option${town === life.startTown ? ' leaning' : ''}`;
+        const title = document.createElement('span');
+        title.className = 'option-title';
+        title.textContent = fill(newHeroText.town, { town: town.name });
+        const detail = document.createElement('span');
+        detail.className = 'option-detail';
+        detail.textContent = fill(newHeroText.townDetail, { level: town.recruitLevel ?? 1, region: regions[town.region].name });
+        button.append(title, detail);
+        button.onclick = () => onTown(town);
+        townList.append(button);
+      }
+
+      const begin = document.createElement('button');
+      begin.type = 'button';
+      begin.className = 'option primary';
+      begin.textContent = newHeroText.begin;
+      begin.onclick = () => {
+        card.layer.hidden = true;
+        delete document.body.dataset.card;
+        onBegin();
+      };
+
+      card.options.replaceChildren(nameField, about, reroll, townsLabel, townList, begin);
+      card.layer.hidden = false;
+      document.body.dataset.card = 'open';
+      card.layer.scrollTop = card.layer.scrollHeight;
+    },
+
     // A card with one button, like Begin or Next hero. {words} in the text are filled from `values`.
     showMessage(text, values, onDone) {
       showCard({
@@ -232,16 +308,36 @@ export function createUi(art) {
       });
     },
 
-    // A skill or class choice.
-    showChoice(choice, hero, { auto, onPick }) {
-      const options = choice.kind === 'class'
-        ? choice.options.map((option) => ({
+    // A skill, class or rumor choice.
+    showChoice(choice, current, { auto, onPick }) {
+      const { hero, world } = current;
+      let options;
+      let title;
+      if (choice.kind === 'rumor') {
+        title = choice.town ? fill(rumorText.townTitle, { town: choice.town }) : rumorText.campTitle;
+        options = choice.options.map(({ place, text }) => {
+          const where = fill(rumorText.detail, {
+            distance: distanceWord(hero, place),
+            direction: directionTo(hero, place),
+            region: regions[place.region].name,
+          });
+          return {
+            title: text,
+            note: danger.skull.repeat(skullsFor(hero.level, place.region)),
+            detail: world.discovered.has(place.name) ? where : `${where} · ${rumorText.unexplored}`,
+          };
+        });
+      } else if (choice.kind === 'class') {
+        title = fill(choiceText.classTitle, { level: choice.level });
+        options = choice.options.map((option) => ({
           title: option.name,
           tags: [...new Set(option.tags)].map(tagInfo),
           detail: `${option.perk.name}: ${describeEffects(option.perk.effects)}`,
           flavor: option.flavor,
-        }))
-        : choice.options.map((skill) => {
+        }));
+      } else {
+        title = fill(choiceText.skillTitle, { level: choice.level });
+        options = choice.options.map((skill) => {
           const rank = skillRank(hero, skill);
           return {
             title: skill.name,
@@ -251,7 +347,7 @@ export function createUi(art) {
             flavor: skill.flavor,
           };
         });
-      const title = fill(choice.kind === 'class' ? choiceText.classTitle : choiceText.skillTitle, { level: choice.level });
+      }
       showCard({ title, options, onPick, auto });
     },
   };

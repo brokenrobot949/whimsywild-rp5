@@ -20,10 +20,11 @@ for (const slot of slots) {
   if (!baseItems.some((base) => base.slot === slot.id)) throw new Error(`data/items.js has no items for the ${slot.name} slot.`);
 }
 
-// Makes a random item of the given level. `slot` picks the slot (any if left out);
-// `weightKey` picks the rarity odds: 'dropWeight' for monster drops, 'shopWeight' for shops.
-export function createItem(rng, level, { slot, weightKey }) {
-  const rarity = rng.pickWeighted(rarities, (option) => option[weightKey]);
+// Makes a random item of the given level. `slot` picks the slot (any if left out).
+// The rarity is either given (like 'common'), or drawn using `weightKey`:
+// 'dropWeight' for monster drops, 'shopWeight' for shops.
+export function createItem(rng, level, { slot, weightKey, rarity: rarityId }) {
+  const rarity = rarityId ? rarities.find((option) => option.id === rarityId) : rng.pickWeighted(rarities, (option) => option[weightKey]);
   const base = rng.pick(slot ? baseItems.filter((option) => option.slot === slot) : baseItems);
   const growth = 1 + itemGrowth * (level - 1);
   const stats = {};
@@ -39,6 +40,15 @@ export function createItem(rng, level, { slot, weightKey }) {
     level,
     stats,
   };
+}
+
+// The same item remade at another level, as heirlooms are for the hero who finds them:
+// same name and rarity, with HP, power and defense grown (or shrunk) to suit the new level.
+export function scaleItem(item, level) {
+  const change = (1 + itemGrowth * (level - 1)) / (1 + itemGrowth * (item.level - 1));
+  const stats = {};
+  for (const [stat, amount] of Object.entries(item.stats)) stats[stat] = amount * (GROWING_STATS.includes(stat) ? change : 1);
+  return { ...item, level, stats };
 }
 
 export function rarityOf(item) {

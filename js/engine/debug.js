@@ -6,7 +6,8 @@ import { loadSetting, saveSetting } from './save.js';
 const SPEEDS = [1, 5, 20];
 
 // onReset erases the save and reloads (main.js does it, so autosave can't write the old save back).
-export function createDebugPanel({ getLife, getLives, onSpeed, onReset }) {
+// onShowAll(on) shows the whole map, ignoring the fog.
+export function createDebugPanel({ getLife, getLives, onSpeed, onShowAll, onReset }) {
   const panel = document.getElementById('debug');
   panel.innerHTML = `
     <summary>Debug</summary>
@@ -14,6 +15,8 @@ export function createDebugPanel({ getLife, getLives, onSpeed, onReset }) {
       ${SPEEDS.map((speed) => `<button type="button" data-speed="${speed}">${speed}×</button>`).join('')}
     </span></div>
     <div class="debug-row">Seed <span class="debug-seed"></span> <a class="debug-replay" href="#">replay</a></div>
+    <div class="debug-row"><label><input type="checkbox" class="debug-show-all"> Show whole map</label></div>
+    <div class="debug-row debug-tile">Point at the map to see a tile's position.</div>
     <div class="debug-row"><button type="button" class="debug-reset">Reset save</button></div>
     <h3>Playtest log</h3>
     <p class="debug-note">Length is game time at 1× speed, not counting pauses.</p>
@@ -39,6 +42,14 @@ export function createDebugPanel({ getLife, getLives, onSpeed, onReset }) {
     onSpeed(speed);
   }
   speedButtons.forEach((button) => button.addEventListener('click', () => setSpeed(Number(button.dataset.speed))));
+
+  const showAll = find('.debug-show-all');
+  showAll.checked = loadSetting('debug-show-all', 'no') === 'yes';
+  onShowAll(showAll.checked);
+  showAll.addEventListener('change', () => {
+    saveSetting('debug-show-all', showAll.checked ? 'yes' : 'no');
+    onShowAll(showAll.checked);
+  });
 
   find('.debug-reset').addEventListener('click', () => {
     if (!confirm('Erase all Whimsywild RP5 saves and settings in this browser?')) return;
@@ -86,8 +97,13 @@ export function createDebugPanel({ getLife, getLives, onSpeed, onReset }) {
     });
   }
 
+  // For placing things in data/regions.js and data/world.js.
+  function showTile(x, y, regionName) {
+    find('.debug-tile').textContent = `Tile [${x}, ${y}] · ${regionName}`;
+  }
+
   setSpeed(speed);
-  return { speed, refresh };
+  return { speed, refresh, showTile };
 }
 
 // 312 seconds → "5:12"

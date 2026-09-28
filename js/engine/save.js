@@ -5,6 +5,7 @@
 // The save holds:
 //   lives     a record of every finished life (Hall of Champions, Chronicle, playtest log)
 //   current   the hero in the middle of their life, or null between heroes
+//   world     what heroes have left behind: the fog lifted, the places discovered, and graves
 //   settings  the player's settings, like Auto-decide
 
 const PREFIX = 'whimsywild-rp5:';
@@ -12,7 +13,7 @@ const SAVE_KEY = `${PREFIX}save`;
 const CODE_PREFIX = 'WWRP5:'; // the start of every save code
 
 // Raise this whenever the save format changes, and add a matching step to `upgrades`.
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 4;
 
 // Each step upgrades a save from one version to the next, so old saves keep working.
 const upgrades = {
@@ -23,10 +24,19 @@ const upgrades = {
     current: null,
     settings: { autoDecide: read(`${PREFIX}auto-decide`) === 'yes' },
   }),
+  // Version 3 is the dragon-shaped world, and adds the fog and discovered places. A hero
+  // in progress on the old placeholder map has no place on the new one, so they're let go.
+  2: (save) => ({ ...save, current: null, world: newWorld() }),
+  // Version 4 adds graves where heroes fell. Heroes who fell before graves existed have none.
+  3: (save) => ({ ...save, world: { ...save.world, graves: [] } }),
 };
 
 function newSave() {
-  return { version: SAVE_VERSION, lives: [], current: null, settings: { autoDecide: false } };
+  return { version: SAVE_VERSION, lives: [], current: null, world: newWorld(), settings: { autoDecide: false } };
+}
+
+function newWorld() {
+  return { revealed: '', discovered: [], graves: [] };
 }
 
 export function loadSave() {

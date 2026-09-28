@@ -2,7 +2,7 @@
 import { buildWorld } from './engine/map.js';
 import {
   createLife, beginLife, stepLife, lifeRecord, lifeStatus, currentChoice, autoChoice, makeChoice,
-  packLife, unpackLife,
+  packLife, unpackLife, startingTowns, nameHero,
 } from './engine/life.js';
 import { randomSeed } from './engine/rng.js';
 import { loadSave, writeSave, clearSave, exportCode, importCode } from './engine/save.js';
@@ -13,6 +13,10 @@ import { createScreens } from './engine/screens.js';
 import { createSettingsPanel } from './engine/settings-panel.js';
 import { createDebugPanel } from './engine/debug.js';
 import { loadArt } from './engine/art.js';
+import { packFog, unpackFog } from './engine/fog.js';
+import { loadGraves } from './engine/graves.js';
+import { regionAt } from './engine/map.js';
+import { regions } from '../data/regions.js';
 import { cards, lifeClock } from '../data/life.js';
 import { autoDecideSeconds } from '../data/skills.js';
 import { keepLogs, resumeCard, settingsText } from '../data/records.js';
@@ -31,19 +35,27 @@ const debugMode = params.has('debug');
 
 const save = loadSave();
 const world = buildWorld();
+// What earlier heroes explored. The first town is always known.
+unpackFog(world, save.world.revealed);
+world.discovered = new Set(save.world.discovered);
+world.discovered.add(world.places.find((place) => place.kind === 'town' && !regions[place.region].sealed).name);
+world.graves = loadGraves(save.world.graves);
 const art = await loadArt();
 const ui = createUi(art);
-const mapView = createMapView(document.getElementById('map'), world, art);
+const mapView = createMapView(document.getElementById('map'), world, art, {
+  onPointerTile: (x, y) => debug?.showTile(x, y, regions[regionAt(world, x, y)]?.name ?? 'Sea'),
+});
 
 const pauses = new Set(); // reasons the clock is stopped: 'card', 'choice', 'settings' or 'hidden'
 let life = null;
 let speed = 1;
 let leftover = 0;         // game seconds waiting to be simulated
+let typedName = '';       // the name typed on the New Hero card; kept through rerolls
 let savingOn = true;      // switched off just before the page reloads with a different save
 let lastSaved = 0;
 let warnedSaveFailed = false;
 
-const screens = createScreens({ art, getLife: () => life, getLives: () => save.lives });
+const screens = createScreens({ art, world, getLife: () => life, getLives: () => save.lives });
 const settings = createSettingsPanel({
   getAutoDecide: () => save.settings.autoDecide,
   setAutoDecide,
@@ -66,6 +78,7 @@ const debug = debugMode
     getLife: () => life,
     getLives: () => save.lives,
     onSpeed: (next) => { speed = next; },
+    onShowAll: (on) => mapView.setShowAll(on),
     onReset: () => {
       savingOn = false;
       clearSave();
@@ -92,6 +105,7 @@ function saveProgress(force = false) {
   if (!force && now - lastSaved < AUTOSAVE_MS) return;
   lastSaved = now;
   save.current = life && !life.ending ? packLife(life) : null;
+  save.world = { revealed: packFog(world.fog), discovered: [...world.discovered], graves: world.graves };
   if (!writeSave(save) && !warnedSaveFailed) {
     warnedSaveFailed = true;
     window.showStartupError?.(settingsText.saveFailed);
@@ -99,14 +113,25 @@ function saveProgress(force = false) {
 }
 
 for (const name of ['arrive', 'birthday', 'level-up']) on(name, () => saveProgress());
+on('discovery', () => saveProgress(true));
+on('respects', () => saveProgress(true));
 
 // ---- Lives ----
 
-function startLife(seed) {
-  life = createLife(world, seed);
+// Rolls a new hero in the given town (or the town last started from) and shows the New Hero card.
+function startLife(seed, town = defaultTown(), rerollsLeft = null) {
+  life = createLife(world, seed, { town });
+  if (rerollsLeft !== null) life.rerollsLeft = rerollsLeft;
+  if (typedName) nameHero(life, typedName);
   showLife();
   saveProgress(true);
-  showStartCard();
+  showNewHeroCard();
+}
+
+// The town the last hero started from, if it's still a starting town, or else the first town.
+function defaultTown() {
+  const towns = startingTowns(world);
+  return towns.find((town) => town.name === save.settings.startTown) ?? towns[0];
 }
 
 // Picks up the hero from the save. Returns false if there's none, or it can't be read.
@@ -120,7 +145,8 @@ function resumeLife() {
   }
   showLife();
   if (!life.begun) {
-    showStartCard();
+    typedName = life.hero.name === life.rolledName ? '' : life.hero.name;
+    showNewHeroCard();
     return true;
   }
   pauses.add('card');
@@ -136,13 +162,31 @@ function showLife() {
   debug?.refresh();
 }
 
-function showStartCard() {
+// The New Hero card: name, rerolls and starting town, then Begin. The map shows the towns.
+function showNewHeroCard() {
+  const towns = startingTowns(world);
   pauses.add('card');
   screens.show('adventure');
-  ui.showMessage(cards.start, cardValues(), () => {
-    pauses.delete('card');
-    beginLife(life);
-    saveProgress(true);
+  mapView.showStartingTowns({ towns, chosen: life.startTown });
+  ui.showNewHero({
+    towns,
+    typed: typedName,
+    onName: (text) => {
+      typedName = text;
+      nameHero(life, text);
+      saveProgress();
+    },
+    onReroll: () => startLife(randomSeed(), life.startTown, life.rerollsLeft - 1),
+    // The same hero, moved to another town.
+    onTown: (town) => startLife(life.hero.seed, town, life.rerollsLeft),
+    onBegin: () => {
+      mapView.showStartingTowns(null);
+      pauses.delete('card');
+      typedName = '';
+      save.settings.startTown = life.startTown.name;
+      beginLife(life);
+      saveProgress(true);
+    },
   });
 }
 
@@ -163,7 +207,7 @@ function offerChoice() {
   pauses.add('choice');
   saveProgress(true);
   screens.show('adventure');
-  ui.showChoice(currentChoice(life), life.hero, {
+  ui.showChoice(currentChoice(life), life, {
     auto: {
       enabled: save.settings.autoDecide,
       pickIndex: autoChoice(life),

@@ -16,5 +16,4 @@ export const familyNames = [
   'Kettleby', 'Stoutfellow', 'Merriweather', 'Wickham', 'Pottersby', 'Figgins',
 ];
 
-// The epithet a hero carries until they earn a better one.
-export const defaultEpithet = 'the Hopeful';
+// Epithets like "the Hopeful" are in epithets.js.

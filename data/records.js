@@ -35,6 +35,8 @@ export const chronicleText = {
   gold: 'Gold found',
   retired: 'Retired',
   fell: 'Fell in battle',
+  heirlooms: 'Heirlooms at graves',
+  heirloomsValue: '{waiting} waiting, {claimed} claimed',
   cause: 'Most common cause of death',
   commonClass: 'Most-played class',
   longest: 'Longest life',
@@ -43,6 +45,9 @@ export const chronicleText = {
   countValue: '{name} ({count})',
   longestValue: '{name}, {years} years',
   highestValue: '{name}, level {level}',
+  mapRevealed: 'Map revealed',
+  townsFound: 'Towns found',
+  townsValue: '{found} of {total}',
   empty: 'The Chronicle is empty. It fills up as heroes finish their lives.',
 };
 

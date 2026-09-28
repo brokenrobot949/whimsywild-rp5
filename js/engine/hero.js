@@ -1,5 +1,6 @@
 // A hero: who they are, how old and strong they are, what they know and carry, and where they stand.
-import { firstNames, familyNames, defaultEpithet } from '../../data/names.js';
+import { firstNames, familyNames } from '../../data/names.js';
+import { defaultEpithet } from '../../data/epithets.js';
 import { lifeClock } from '../../data/life.js';
 import { heroStats, experience } from '../../data/combat.js';
 import { slots, potions } from '../../data/items.js';
@@ -72,6 +73,16 @@ export function takeClass(hero, classId) {
   const before = hero.stats.maxHp;
   refreshStats(hero);
   hero.hp += Math.max(0, hero.stats.maxHp - before);
+}
+
+// Brings a new hero up to a starting level, with the stats they'd have gained on the way.
+export function raiseToLevel(hero, level) {
+  while (hero.level < level) {
+    hero.level += 1;
+    for (const [stat, gain] of Object.entries(heroStats.perLevel)) hero.base[stat] += gain;
+  }
+  refreshStats(hero);
+  hero.hp = hero.stats.maxHp;
 }
 
 // Experience needed to go up from `level` to the next one.

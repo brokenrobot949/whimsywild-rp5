@@ -5,6 +5,7 @@ import { lifeStatus } from './life.js';
 import { rarityOf, itemStatsText } from './items.js';
 import { tagInfo, classById, skillByName, describeEffects } from './skills.js';
 import { chronicleStats } from './records.js';
+import { revealedShare } from './fog.js';
 import { logLine } from './ui.js';
 import { picture, TILE } from './art.js';
 import { fill, capitalize } from './text.js';
@@ -18,9 +19,9 @@ const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V'];
 const STAT_ORDER = ['power', 'defense', 'speed', 'luck'];
 
 // Events that change what the Hero tab shows.
-const HERO_EVENTS = ['season', 'arrive', 'fight-end', 'level-up', 'equip', 'choice-made', 'potion', 'shop'];
+const HERO_EVENTS = ['season', 'arrive', 'fight-end', 'level-up', 'equip', 'choice-made', 'potion', 'shop', 'epithet'];
 
-export function createScreens({ art, getLife, getLives }) {
+export function createScreens({ art, world, getLife, getLives }) {
   const panels = {
     adventure: document.getElementById('panel-adventure'),
     hero: document.getElementById('panel-hero'),
@@ -172,25 +173,35 @@ export function createScreens({ art, getLife, getLives }) {
     const panel = panels.chronicle;
     const lives = getLives();
     panel.replaceChildren(element('h2', '', chronicleText.title));
+    const list = element('dl', 'chronicle');
+    const add = (label, value) => list.append(element('dt', '', label), element('dd', '', value));
+    const counted = (entry) => (entry ? fill(chronicleText.countValue, entry) : chronicleText.none);
+    const towns = world.places.filter((place) => place.kind === 'town');
+    add(chronicleText.mapRevealed, `${Math.floor(revealedShare(world) * 100)}%`);
+    add(chronicleText.townsFound, fill(chronicleText.townsValue, {
+      found: towns.filter((town) => world.discovered.has(town.name)).length,
+      total: towns.length,
+    }));
+    panel.append(list);
     if (lives.length === 0) {
       panel.append(element('p', 'muted', chronicleText.empty));
       return;
     }
     const stats = chronicleStats(lives);
-    const list = element('dl', 'chronicle');
-    const add = (label, value) => list.append(element('dt', '', label), element('dd', '', value));
-    const counted = (entry) => (entry ? fill(chronicleText.countValue, entry) : chronicleText.none);
     add(chronicleText.heroes, stats.heroes.toLocaleString());
     add(chronicleText.years, stats.years.toLocaleString());
     add(chronicleText.monsters, stats.monstersSlain.toLocaleString());
     add(chronicleText.gold, stats.goldFound.toLocaleString());
     add(chronicleText.retired, stats.retired.toLocaleString());
     add(chronicleText.fell, stats.fell.toLocaleString());
+    add(chronicleText.heirlooms, fill(chronicleText.heirloomsValue, {
+      waiting: world.graves.filter((grave) => grave.heirloom && !grave.claimedBy).length,
+      claimed: world.graves.filter((grave) => grave.claimedBy).length,
+    }));
     add(chronicleText.cause, counted(stats.commonCause));
     add(chronicleText.commonClass, counted(stats.commonClass));
     add(chronicleText.longest, fill(chronicleText.longestValue, stats.longest));
     add(chronicleText.highest, fill(chronicleText.highestValue, stats.highest));
-    panel.append(list);
   }
 
   // ---- Hall of Champions ----

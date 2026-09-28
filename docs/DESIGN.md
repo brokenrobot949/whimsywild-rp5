@@ -62,7 +62,7 @@ That totals about 17–22 decisions, roughly one every 15–20 seconds. This kee
 
 - **Skill picks and class evolution:** the option that best matches the hero's highest tags.
 - **Story events:** every option carries a tag ("Charge the troll" is Might, "Trick it" is Cunning), and the hero picks the option matching their top tag, so heroes act in character.
-- **Rumors:** the one closest to the hero's level.
+- **Rumors:** the one that best suits the hero: a region that fits their level, not too far away.
 - **Retirement:** at the first town visit after age 65.
 
 ## Hero Creation
@@ -88,7 +88,7 @@ Each hero is rolled automatically with a name, an origin and a quirk; before the
 
 **Names and epithets**
 
-Names are generated from fantasy first and last name lists. Epithets are earned from deeds during the life, such as "Wendel Goblinbane" or "Gwendolyn the Mildly Brave." A hero who earns nothing gets a default epithet like "the Hopeful."
+Names are generated from fantasy first and last name lists. Epithets are earned from deeds during the life, such as "Wendel Goblinbane" or "Gwendolyn the Mildly Brave." A hero who earns nothing gets a default epithet like "the Hopeful." A hero can earn a grander epithet later in life, which replaces the earlier one; the log announces each new epithet.
 
 **Rerolls and custom names**
 
@@ -195,13 +195,15 @@ About three extra hamlets sit off the main paths as bonus discoveries, for rough
 
 **Towns and recruitment levels**
 
-Once discovered, a town becomes a starting point for future heroes. Heroes start at the town's recruitment level with modest gear, so every town is a real checkpoint. Map rule: each region's main town must be reachable from the previous town within one good life.
+Once discovered, a town becomes a starting point for future heroes. Heroes start at the town's recruitment level with modest gear (a Common weapon of that level), so every town is a real checkpoint. (Armor was dropped from the starting gear in the Phase 2 tuning, so a later start carries about the same risk of death as starting in Tailsend.) Before hearing their first rumors, they make the skill and class choices of the levels they skipped. Map rule: each region's main town must be reachable from the previous town within one good life.
 
 **Steering with rumors**
 
 - In a town or at camp, the player picks one of 2–3 rumors, each showing a rough direction and a danger rating of 1–3 skulls.
+- One rumor always suits the hero: a place that is near and in a region that fits their level. Auto-decide picks the best-suited rumor, weighing a level of mismatch against a walk of about 30 tiles. A town's new recruits, who start one level below its region, count as ready for that region.
 - Example: "A dragon naps on Mount Grumble" or "The miller's cat vanished near the old ruins."
 - The hero travels there automatically, with encounters and events along the way.
+- At the rumor's end, the hero explores up to two nearby places in the same region on their own, then walks back to the nearest town if one is close; otherwise they make camp and hear the next rumors there.
 - Rumor pools depend on the region, the story act and what has been discovered. Some rumors point into the fog.
 - "?" markers at the fog's edge hint at undiscovered sites.
 
@@ -436,5 +438,11 @@ Every design question is decided.
 | Sound and music | In scope, added in Phase 3 |
 | Tuning | Run length, XP curve and drop rates set during Phase 1 playtests |
 | Automatic retirement away from town | The hero settles in the last town they visited |
-| Monster levels in Phase 1 | With only the Tailwoods built, monsters meet the hero at about the hero's own level, standing in for harder regions; above the region's levels they earn a title such as "Elder". Phase 2 switches to each region's own levels |
+| Hall of Champions logs | The 50 most recent heroes keep their full adventure log; older heroes keep their card, since browser storage is limited |
+| Epithets | Added at the end of Phase 1, earned from deeds during the life |
+| World map in Phase 2 | The whole dragon is built at once, all 7 regions under fog. Regions not yet playable are sealed by dream-mist until their phase |
+| How the map is made | A seeded generator fills in terrain from a coarse dragon outline drawn as text in the data files; towns and landmarks are placed by hand |
+| Phase 2 regions | Start with 3 playable regions: the Tailwoods, Hindhill Farms and the Glittering Flank. The Wingshade Fens open at the end of Phase 2; the wing's tip drapes down past the Spine to meet the Flank, so the Fens can be reached without crossing a sealed region |
+| Graves and heirlooms | A fallen hero's tombstone stays on the map, marked with their first name (the 30 most recent are kept). Their best item waits beside it as an heirloom, shown by a gold sparkle. The first later hero to pass within 3 tiles pays respects and takes it, remade at their own level; they wear it if it's better, or sell it. Taking one earns the epithet "the Heir" |
+| Monster levels | From Phase 2, a monster's level is near the hero's but always within its region's range, so the danger of a rumor depends on where it leads. (In Phase 1, with only the Tailwoods, monsters grew with the hero instead, with titles such as "Elder".) |
 

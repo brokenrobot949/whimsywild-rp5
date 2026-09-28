@@ -23,12 +23,11 @@ export const experience = {
 export const encounters = {
   minGapSeconds: 3,     // walking time after a fight before another can start
   chancePerSecond: 0.3, // after the gap, the chance of a fight per second of walking
-  // Phase 1: a monster's level is the hero's level plus one of these, so monsters
-  // grow with the hero until Phase 2 adds harder regions (see DESIGN.md).
+  // A monster's level is the hero's level plus one of these, kept within its region's levels.
   levelOffsets: [-1, 0, 0, 1],
   // Each monster level adds this share of its level-1 HP, power and defense. A little faster
   // than the hero's own growth, so monsters keep up with heroes who have gear and skills.
-  monsterGrowth: 0.22,
+  monsterGrowth: 0.24,
 };
 
 export const blows = {
@@ -38,10 +37,10 @@ export const blows = {
 };
 
 export const healing = {
-  // Share of max HP regained each second outside fights (0.012 is 1.2%). Towns heal fully.
+  // Share of max HP regained each second outside fights (0.013 is 1.3%). Towns heal fully.
   // Along with monsterGrowth above, this is the strongest dial for how often heroes die:
   // lower healing or faster monster growth means more deaths.
-  perSecond: 0.012,
+  perSecond: 0.013,
 };
 
 // Logged each time the hero goes up a level. {level} is the new level.
