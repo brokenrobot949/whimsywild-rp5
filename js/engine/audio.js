@@ -60,32 +60,37 @@ export function createAudio() {
   const lastPlayed = new Map(); // sound name → when it last played, for `gap`
 
   // Starts the sound on the first tap or key press (browsers block it before then), and wakes
-  // it again if the browser put it to sleep.
+  // it again if the browser put it to sleep. If the phone or browser refuses (some do, for a
+  // moment, or while another app is using the speaker), the game carries on silently and tries
+  // again at the next tap. Sound problems are never shown as errors.
   function wake() {
     if (document.hidden) return;
-    if (context) {
-      if (context.state === 'suspended') context.resume();
-      return;
+    try {
+      if (!context) {
+        const Context = window.AudioContext || window.webkitAudioContext;
+        if (!Context) return; // a very old browser: the game simply stays silent
+        context = new Context();
+        master = context.createGain();
+        master.connect(context.destination);
+        musicBus = context.createGain();
+        musicBus.connect(master);
+        effectsBus = context.createGain();
+        effectsBus.connect(master);
+        noise = noiseBuffer(context);
+        applyVolumes();
+        startMusic();
+      }
+      if (context.state !== 'running') quietly(context.resume());
+    } catch (error) {
+      console.warn('The sound could not start, so the game is silent for now.', error);
     }
-    const Context = window.AudioContext || window.webkitAudioContext;
-    if (!Context) return; // a very old browser: the game simply stays silent
-    context = new Context();
-    master = context.createGain();
-    master.connect(context.destination);
-    musicBus = context.createGain();
-    musicBus.connect(master);
-    effectsBus = context.createGain();
-    effectsBus.connect(master);
-    noise = noiseBuffer(context);
-    applyVolumes();
-    startMusic();
   }
-  document.addEventListener('pointerdown', wake);
-  document.addEventListener('keydown', wake);
+  // Phones only allow sound to start when a tap ends (not when it begins), so listen for both.
+  for (const name of ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown']) document.addEventListener(name, wake);
   document.addEventListener('visibilitychange', () => {
     if (!context) return;
-    if (document.hidden) context.suspend();
-    else context.resume();
+    if (document.hidden) quietly(context.suspend());
+    else quietly(context.resume());
   });
 
   function applyVolumes() {
@@ -248,6 +253,12 @@ export function createAudio() {
     },
     play, // for trying a sound, like when the effects volume changes
   };
+}
+
+// Browsers answer "start" and "stop" requests later, and may say no. A refusal is fine: the
+// game stays silent, and tries again at the next tap.
+function quietly(promise) {
+  promise?.catch?.((error) => console.warn('The sound could not start just now.', error));
 }
 
 // A second of white noise, the raw material for hits, whooshes and rumbles.

@@ -196,6 +196,7 @@ export function createUi(art) {
     }
     card.layer.hidden = false;
     document.body.dataset.card = 'open'; // lets the other tabs hide the card and flag it on the Adventure tab
+    delete document.body.dataset.picking;
     card.layer.scrollTop = card.layer.scrollHeight;
     buttons[0].focus({ preventScroll: true });
   }
@@ -382,6 +383,7 @@ export function createUi(art) {
       begin.className = 'option primary';
       begin.textContent = newHeroText.begin;
       begin.onclick = () => {
+        delete document.body.dataset.picking;
         card.layer.hidden = true;
         delete document.body.dataset.card;
         onBegin();
@@ -393,6 +395,7 @@ export function createUi(art) {
       );
       card.layer.hidden = false;
       document.body.dataset.card = 'open';
+      document.body.dataset.picking = 'yes'; // the map keeps its size, to show the towns
       card.layer.scrollTop = card.layer.scrollHeight;
     },
 

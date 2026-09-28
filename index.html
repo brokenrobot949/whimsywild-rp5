@@ -16,7 +16,7 @@
           return;
         }
         if (!box.hidden) return; // keep the first error, which is usually the cause
-        box.textContent = 'Something went wrong:\n' + message;
+        document.getElementById('error-text').textContent = 'Something went wrong:\n' + message;
         box.hidden = false;
       }
       window.showStartupError = show;
@@ -85,6 +85,7 @@
   <div id="settings" hidden>
     <div class="sheet" role="dialog" aria-labelledby="settings-title">
       <h2 id="settings-title">Settings</h2>
+      <details id="help"></details>
       <label class="setting"><input type="checkbox" id="setting-auto"> Auto-decide choices</label>
       <p class="hint">The hero makes each skill and class choice after a short pause, by their tags.</p>
 
@@ -115,6 +116,6 @@
   </div>
 
   <details id="debug" hidden></details>
-  <div id="error" role="alert" hidden></div>
+  <div id="error" role="alert" hidden><span id="error-text"></span><button type="button" id="error-close" aria-label="Close" onclick="this.parentNode.hidden = true">&#10005;</button></div>
 </body>
 </html>

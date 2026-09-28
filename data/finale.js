@@ -42,7 +42,6 @@ export const finaleText = {
   epithet: 'the Lullaby-Singer',    // the hero who finishes the song
   deed: 'Sang Sominus to sleep.',
   ending: 'Sang Sominus to sleep, in the heart of the Deepest Nightmare.', // the hero's ending
-  chronicleDone: 'Sominus sleeps, sung to sleep by {name} {epithet}, age {age}.',
   // The ending: a scroll of every hero. (The card that follows is Act 4's interlude, in story.js.)
   rollTitle: 'The Last Verse',
   rollIntro: 'The lullaby\'s last verse was never written. It is the story of everyone who came looking.',

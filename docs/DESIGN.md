@@ -185,7 +185,7 @@ The world is one fixed map, identical for every player, shaped like a colossal s
 **Map basics**
 
 - A tile grid of roughly 200 × 200 tiles.
-- Fog clears in a radius of 3–5 tiles around the hero and never returns.
+- Fog clears in a radius of 3–5 tiles around the hero and never returns. Its edges are drawn rounded, so the explored land curves rather than stepping in squares.
 - Mountain ranges form the spine, a smoking volcano is the nostril, and a lake is the closed eye.
 - Danger rises toward the head, where the dragon's dreams are strongest.
 
@@ -422,7 +422,7 @@ Whimsywild RP5 is designed mobile-first in portrait, with the live adventure on 
 
 **Adventure screen (during a life)**
 
-- **World Map (top, about 55%):** follows the hero's sprite; the player can drag and pinch to look around the revealed world.
+- **World Map (top, about 40% on phones):** follows the hero's sprite; the player can drag and pinch to look around the revealed world. On phones, while a choice card is open, the map shrinks to about a fifth of the screen so the whole card fits without scrolling (except on the New Hero card, where the map shows the towns).
 - **Hero strip:** name and epithet, class, age, level, HP bar and tonight's dream.
 - **Adventure log (bottom):** scrolling, whimsical narration of every fight, find and event, stamped by season and age.
 - **Choice cards** slide up over the log and pause the clock.
@@ -439,7 +439,7 @@ Stats, class and evolution path, tag totals, skills and ranks, equipped gear, or
 **Chronicle tab**
 
 - Lifetime stats: heroes run, total years adventured, monsters slain, gold found, map percentage revealed, towns found, castles conquered, verses found, most common cause of death, most-played class and longest life.
-- Story progress: the current act and collected dream shards.
+- The story so far, at the top: one section for each act the world has reached, which opens with a tap to retell that act. The current act starts open, marked "now", with a "What's next" hint (for example, how many verses are found). Acts not yet reached stay hidden. The rest of the Chronicle is grouped under The world, Heroes and Mentors, then monster castles, the lullaby and dream shards.
 
 **Hall of Champions tab**
 
@@ -454,7 +454,7 @@ Tapping a card opens that hero's full adventure log.
 
 **Settings**
 
-Mute, separate music and sound effect volume, and the Auto-decide toggle. Settings are remembered between sessions.
+How to play (a short guide for new players, one topic per tap, in `data/help.js`), then mute, separate music and sound effect volume, and the Auto-decide toggle. Settings are remembered between sessions. If a phone refuses to start the sound, the game stays silent and tries again at the next tap, without showing an error; any error message that does appear has a close button.
 
 ## Technical Architecture
 

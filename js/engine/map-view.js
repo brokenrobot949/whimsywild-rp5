@@ -21,6 +21,7 @@ const HINT_RANGE = 8;         // undiscovered places this close to explored land
 const BACKGROUND = '#16131f';
 const FOG = '#2b2538';
 const MIST = 'rgba(236, 232, 255, 0.55)';
+const FOG_ROUNDING = 0.5;   // how round the fog's edges are: 0 is square, 0.5 is fully round
 const LUNGE_SECONDS = 0.15;  // how long a fighter leans in when striking (game time)
 const LUNGE_PIXELS = 3;      // how far they lean, in art pixels
 const GLINT = '#f2d45c';     // the twinkle on a grave whose heirloom still waits
@@ -206,16 +207,36 @@ export function createMapView(canvas, world, art, { onPointerTile } = {}) {
         for (const layer of plan[y * world.width + x].above) blit(layer, x * size - camX, (y - 1) * size - camY);
       }
     }
-    // Dream-mist over sealed regions, and fog over everything not yet seen.
+    // Dream-mist over sealed regions.
+    ctx.fillStyle = MIST;
     for (let y = firstRow; y <= lastRow; y++) {
       for (let x = firstCol; x <= lastCol; x++) {
-        const i = y * world.width + x;
-        if (!seen(x, y)) {
-          ctx.fillStyle = FOG;
-          ctx.fillRect(x * size - camX, y * size - camY, size, size);
-        } else if (world.sealed[i]) {
-          ctx.fillStyle = MIST;
-          ctx.fillRect(x * size - camX, y * size - camY, size, size);
+        if (seen(x, y) && world.sealed[y * world.width + x]) ctx.fillRect(x * size - camX, y * size - camY, size, size);
+      }
+    }
+    // Fog over everything not yet seen, with its edges rounded off: a fogged square's corner is
+    // rounded where the land beside it on both sides has been seen, and the fog fills in the
+    // inside corners of seen squares, so the edge of the explored world curves.
+    // (Off the edge of the map counts as neither, so the edges stay square.)
+    const inMap = (x, y) => x >= 0 && y >= 0 && x < world.width && y < world.height;
+    const fogged = (x, y) => inMap(x, y) && !seen(x, y);
+    const clear = (x, y) => inMap(x, y) && seen(x, y);
+    const round = size * FOG_ROUNDING;
+    ctx.fillStyle = FOG;
+    for (let y = firstRow; y <= lastRow; y++) {
+      for (let x = firstCol; x <= lastCol; x++) {
+        const px = x * size - camX;
+        const py = y * size - camY;
+        if (fogged(x, y)) {
+          const open = (dx, dy) => clear(x + dx, y) && clear(x, y + dy);
+          const corners = [open(-1, -1), open(1, -1), open(1, 1), open(-1, 1)].map((rounded) => (rounded ? round : 0));
+          if (corners.some(Boolean)) roundedSquare(px, py, size, corners);
+          else ctx.fillRect(px, py, size, size);
+        } else {
+          // An inside corner: fog on both sides and across the corner.
+          for (const [dx, dy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]) {
+            if (fogged(x + dx, y) && fogged(x, y + dy) && fogged(x + dx, y + dy)) insideCorner(px, py, size, dx, dy, round);
+          }
         }
       }
     }
@@ -316,6 +337,40 @@ export function createMapView(canvas, world, art, { onPointerTile } = {}) {
     const bob = heroAt.moving && heroAt.progress < 0.5 ? scale : 0;
     drawShadow(heroX, heroY);
     blit(hero, heroX, heroY - bob);
+  }
+
+  // A filled square with some corners rounded: `corners` are the radii of the top-left,
+  // top-right, bottom-right and bottom-left corners (0 for a square corner).
+  function roundedSquare(x, y, size, [tl, tr, br, bl]) {
+    ctx.beginPath();
+    ctx.moveTo(x + tl, y);
+    ctx.lineTo(x + size - tr, y);
+    if (tr) ctx.arc(x + size - tr, y + tr, tr, -Math.PI / 2, 0);
+    ctx.lineTo(x + size, y + size - br);
+    if (br) ctx.arc(x + size - br, y + size - br, br, 0, Math.PI / 2);
+    ctx.lineTo(x + bl, y + size);
+    if (bl) ctx.arc(x + bl, y + size - bl, bl, Math.PI / 2, Math.PI);
+    ctx.lineTo(x, y + tl);
+    if (tl) ctx.arc(x + tl, y + tl, tl, Math.PI, Math.PI * 1.5);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // Fills the inside corner of a square (the corner towards dx, dy) up to a curve of radius r.
+  function insideCorner(x, y, size, dx, dy, r) {
+    const cx = dx < 0 ? x : x + size; // the corner itself
+    const cy = dy < 0 ? y : y + size;
+    const ax = cx - dx * r;           // the centre of the curve, inside the square
+    const ay = cy - dy * r;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(ax, cy);
+    // The quarter circle from (ax, cy) round to (cx, ay), bulging towards the corner.
+    const from = Math.atan2(cy - ay, 0);
+    const to = Math.atan2(0, cx - ax);
+    ctx.arc(ax, ay, r, from, to, (dx < 0) === (dy < 0));
+    ctx.closePath();
+    ctx.fill();
   }
 
   // Zoomed far out: one small square per tile, with towns and the hero marked.

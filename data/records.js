@@ -51,6 +51,12 @@ export const chronicleText = {
   mapRevealed: 'Map revealed',
   townsFound: 'Towns found',
   townsValue: '{found} of {total}',
+  castlesConquered: 'Castles conquered',
+  versesFound: 'Verses found',
+  shardsFound: 'Dream shards found',
+  worldHeading: 'The world',
+  heroesHeading: 'Heroes',
+  mentorsHeading: 'Mentors',
   empty: 'The Chronicle is empty. It fills up as heroes finish their lives.',
 };
 

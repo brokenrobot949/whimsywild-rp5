@@ -118,4 +118,68 @@ export const storyText = {
   chronicleAct: 'The story',
   actValue: 'Act {act}: {name}',
   interludeButton: 'Continue',
+  now: 'now',                     // marks the current act in the Chronicle
+  nextLabel: "What's next",
+  moreToCome: 'More of the story is still to come.',
+};
+
+// The story so far, retold in the Chronicle: each act the world has reached can be tapped to
+// read it again. `story` is the telling, in short paragraphs. `next` is a hint about what heroes
+// can do next, shown while it's the current act. {words} are filled in automatically:
+// {verses} verses found, {total} verses in all, {needed} verses Act 3 needs, {castles} castles
+// conquered, {singer} the hero who sang the lullaby.
+export const actChronicle = {
+  1: {
+    story: [
+      'Whimsywild is a land of lazy summers and grumpy badgers, and lately, of monsters. There are '
+        + 'more every year, folk say, and stranger ones: turnips that argue, chests that bite, frogs '
+        + 'as tall as houses.',
+      'And the ground has started to move. Now and then it shudders, as if something enormous, deep '
+        + 'below, were turning over in its sleep. The old songs have a name for it: the Sleeper. '
+        + 'Nobody takes the old songs seriously. Nobody much likes the tremors, either.',
+      'In the worst places, the monsters have taken root in castles of their own, each ruled by '
+        + 'something bigger and stranger than the rest.',
+    ],
+    next: 'The monster castles hold the land\'s worst nightmares. Conquering one may reveal what '
+      + 'the Sleeper really is.',
+  },
+  2: {
+    story: [
+      'When the first castle fell, the truth came out with it. The monsters were never monsters at '
+        + 'all. They are dreams, leaking up from something vast asleep beneath the land.',
+      'The land itself is the dreamer. Its hills are a dragon\'s back, its rivers run along its '
+        + 'scales, its farms sit on its legs, and its tail curls round the south. The scholars have a '
+        + 'name for it now: Sominus. And Sominus is dreaming badly.',
+      'Long ago, a lullaby sang it to sleep. The song was forgotten, but its verses are said to lie '
+        + 'hidden in the dungeons and castles of every region. Every verse found becomes a verse '
+        + 'that every hero after can sing.',
+    ],
+    next: 'Find the verses of the lullaby, hidden in dungeons and monster castles. {verses} of '
+      + '{total} found so far; the story moves on when {needed} are found.',
+  },
+  3: {
+    story: [
+      'With most of the lullaby found, the heroes finally understood the nightmare. Sominus is not '
+        + 'angry. Sominus is lonely. It has slept for so long that it fears the whole world has '
+        + 'forgotten it, and the fear leaks out as monsters.',
+      'The mist over its head has lifted. Smokecrown is open: a land of ash and smoke and lamps '
+        + 'left burning, where Lastlight keeps a candle in every window for travelers still out '
+        + 'there. At the tip of the dragon\'s horn, in Hornhold, a forgotten king guards the last verse.',
+    ],
+    next: 'Find every verse ({verses} of {total} so far). Then the way into the dragon\'s dream '
+      + 'will open, and someone must go in and sing.',
+    nextOpen: 'Every verse is found, and the way into the dragon\'s dream is open, through Lidwater '
+      + 'by Lastlight. Someone strong must go in and sing the whole lullaby.',
+  },
+  4: {
+    story: [
+      'In the heart of the Deepest Nightmare, {singer} sang the lullaby, every verse of it. At the '
+        + 'last verse the Nightmare curled up small, and far below, Sominus slept.',
+      'The lullaby\'s last verse was never written. It turned out to be the story of every hero '
+        + 'who came looking, and every one of them is remembered.',
+      'The dragon\'s dreams are gentle now, and a little strange: picnics and lanterns, parades of '
+        + 'beetles, knights who garden. The world stays open, and there are always more stories '
+        + 'to tell.',
+    ],
+  },
 };

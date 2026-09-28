@@ -14,8 +14,8 @@ import { shards, shardText } from '../../data/shards.js';
 import { conquestOf, bossTitle } from './castles.js';
 import { castleText } from '../../data/castles.js';
 import { currentAct, actInfo, verseById, isSealed } from './story.js';
-import { storyText } from '../../data/story.js';
-import { finaleText } from '../../data/finale.js';
+import { storyText, storySettings, acts, actChronicle } from '../../data/story.js';
+import { isFinaleOpen } from './finale.js';
 import { verses, verseText, verseSettings } from '../../data/verses.js';
 import { regions } from '../../data/regions.js';
 import { chronicleStats } from './records.js';
@@ -242,50 +242,108 @@ export function createScreens({ art, world, getLife, getLives }) {
 
   // ---- Chronicle ----
 
+  // The story so far, act by act. Each act the world has reached opens to retell it; the
+  // current act starts open, with a hint of what heroes can do next.
+  function storySoFar(act) {
+    const box = element('div', 'story-acts');
+    const values = {
+      verses: world.verses.length,
+      total: verses.length,
+      needed: storySettings.act3Verses,
+      castles: world.conquered.length,
+      singer: world.finale ? `${world.finale.hero} ${world.finale.epithet}`.trim() : '',
+    };
+    for (let number = 1; number <= act; number++) {
+      const info = actInfo(number);
+      const telling = actChronicle[number];
+      if (!info || !telling) continue;
+      const section = document.createElement('details');
+      section.className = 'story-act';
+      section.open = number === act;
+      const summary = document.createElement('summary');
+      summary.append(fill(storyText.actValue, info));
+      if (number === act) summary.append(' ', element('span', 'story-now', storyText.now));
+      section.append(summary);
+      for (const paragraph of telling.story) section.append(element('p', '', fill(paragraph, values)));
+      const next = number === act ? ((isFinaleOpen(world) && telling.nextOpen) || telling.next) : null;
+      if (next) {
+        const hint = element('p', 'story-next');
+        hint.append(element('b', '', `${storyText.nextLabel}: `), fill(next, values));
+        section.append(hint);
+      }
+      box.append(section);
+    }
+    if (act < acts.length) box.append(element('p', 'muted', storyText.moreToCome));
+    return box;
+  }
+
   function renderChronicle() {
     const panel = panels.chronicle;
     const lives = getLives();
     panel.replaceChildren(element('h2', '', chronicleText.title));
-    const list = element('dl', 'chronicle');
-    const add = (label, value) => list.append(element('dt', '', label), element('dd', '', value));
     const counted = (entry) => (entry ? fill(chronicleText.countValue, entry) : chronicleText.none);
     const towns = world.places.filter((place) => place.kind === 'town');
     const act = currentAct(world);
-    add(storyText.chronicleAct, world.finale ? fill(finaleText.chronicleDone, { name: world.finale.hero, epithet: world.finale.epithet, age: world.finale.age }) : fill(storyText.actValue, actInfo(act)));
-    add(chronicleText.mapRevealed, `${Math.floor(revealedShare(world) * 100)}%`);
-    add(chronicleText.townsFound, fill(chronicleText.townsValue, {
-      found: towns.filter((town) => world.discovered.has(town.name)).length,
-      total: towns.length,
-    }));
-    panel.append(list);
+    // A list of "label ... value" rows.
+    const statList = (rows) => {
+      const list = element('dl', 'chronicle');
+      for (const [label, value] of rows) {
+        const row = element('div', 'stat-row');
+        row.append(element('dt', '', label), element('dd', '', value));
+        list.append(row);
+      }
+      return list;
+    };
+
+    // The story so far: each act reached can be opened to read it again.
+    panel.append(element('h3', '', storyText.chronicleAct), storySoFar(act));
+
+    const castlesOpen = world.places.filter((place) => place.kind === 'castle' && !isSealed(world, place.region));
+    const worldRows = [
+      [chronicleText.mapRevealed, `${Math.floor(revealedShare(world) * 100)}%`],
+      [chronicleText.townsFound, fill(chronicleText.townsValue, { found: towns.filter((town) => world.discovered.has(town.name)).length, total: towns.length })],
+      [chronicleText.castlesConquered, fill(chronicleText.townsValue, { found: world.conquered.length, total: castlesOpen.length })],
+    ];
+    if (act >= verseSettings.findFromAct) worldRows.push([chronicleText.versesFound, fill(chronicleText.townsValue, { found: world.verses.length, total: verses.length })]);
+    worldRows.push([chronicleText.shardsFound, fill(chronicleText.townsValue, { found: world.shards.length, total: shards.length })]);
+    panel.append(element('h3', '', chronicleText.worldHeading), statList(worldRows));
+
+    panel.append(element('h3', '', chronicleText.heroesHeading));
     if (lives.length === 0) {
       panel.append(element('p', 'muted', chronicleText.empty));
       return;
     }
     const stats = chronicleStats(lives);
-    add(chronicleText.heroes, stats.heroes.toLocaleString());
-    add(chronicleText.years, stats.years.toLocaleString());
-    add(chronicleText.monsters, stats.monstersSlain.toLocaleString());
-    add(chronicleText.gold, stats.goldFound.toLocaleString());
-    add(chronicleText.retired, stats.retired.toLocaleString());
-    add(chronicleText.fell, stats.fell.toLocaleString());
-    add(chronicleText.heirlooms, fill(chronicleText.heirloomsValue, {
-      waiting: world.graves.filter((grave) => grave.heirloom && !grave.claimedBy).length,
-      claimed: world.graves.filter((grave) => grave.claimedBy).length,
-    }));
-    add(chronicleText.cause, counted(stats.commonCause));
-    add(chronicleText.commonClass, counted(stats.commonClass));
-    add(chronicleText.longest, fill(chronicleText.longestValue, stats.longest));
-    add(chronicleText.highest, fill(chronicleText.highestValue, stats.highest));
+    panel.append(statList([
+      [chronicleText.heroes, stats.heroes.toLocaleString()],
+      [chronicleText.years, stats.years.toLocaleString()],
+      [chronicleText.monsters, stats.monstersSlain.toLocaleString()],
+      [chronicleText.gold, stats.goldFound.toLocaleString()],
+      [chronicleText.retired, stats.retired.toLocaleString()],
+      [chronicleText.fell, stats.fell.toLocaleString()],
+      [chronicleText.heirlooms, fill(chronicleText.heirloomsValue, {
+        waiting: world.graves.filter((grave) => grave.heirloom && !grave.claimedBy).length,
+        claimed: world.graves.filter((grave) => grave.claimedBy).length,
+      })],
+      [chronicleText.cause, counted(stats.commonCause)],
+      [chronicleText.commonClass, counted(stats.commonClass)],
+      [chronicleText.longest, fill(chronicleText.longestValue, stats.longest)],
+      [chronicleText.highest, fill(chronicleText.highestValue, stats.highest)],
+    ]));
+
     // The retired heroes of each town: the newest are its mentors, the rest residents.
+    const mentorList = element('ul', 'plain-list');
     for (const town of towns) {
       const residents = residentsOf(world, town.name);
       if (residents.length === 0) continue;
       const shown = residents.slice(0, mentorSettings.gifts).map((mentor) => `${mentor.name} ${mentor.epithet}`);
       const more = residents.length - shown.length;
       if (more > 0) shown.push(fill(mentorText.residents[more === 1 ? 0 : 1], { count: more }));
-      add(fill(mentorText.chronicle, { town: town.name }), shown.join(', '));
+      const item = element('li');
+      item.append(element('b', '', town.name), element('div', 'muted', shown.join(', ')));
+      mentorList.append(item);
     }
+    if (mentorList.children.length > 0) panel.append(element('h3', '', chronicleText.mentorsHeading), mentorList);
 
     // Monster castles: who holds each one that's been found, or who conquered it.
     const castles = world.places.filter((place) => place.kind === 'castle' && !isSealed(world, place.region));

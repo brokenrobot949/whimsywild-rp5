@@ -1,6 +1,8 @@
-// The Settings panel: Auto-decide, sound, and backing up or loading the save as a text code.
+// The Settings panel: How to play, Auto-decide, sound, and backing up or loading the save as a
+// text code.
 import { settingsText } from '../../data/records.js';
 import { soundFor } from '../../data/audio.js';
+import { helpText, helpTopics } from '../../data/help.js';
 
 //   getAutoDecide / setAutoDecide   read and change the Auto-decide setting
 //   audio                           the sound system (see audio.js)
@@ -17,6 +19,7 @@ export function createSettingsPanel({ getAutoDecide, setAutoDecide, audio, makeC
   const code = byId('save-code');
   const paste = byId('save-paste');
   const message = byId('save-message');
+  buildHelp(byId('help'));
 
   function open() {
     auto.checked = getAutoDecide();
@@ -79,4 +82,28 @@ export function createSettingsPanel({ getAutoDecide, setAutoDecide, audio, makeC
       auto.checked = getAutoDecide();
     },
   };
+}
+
+// "How to play": a section that opens with a tap, holding one small section per topic
+// (the words are in data/help.js).
+function buildHelp(box) {
+  const summary = document.createElement('summary');
+  summary.textContent = helpText.heading;
+  const hint = document.createElement('p');
+  hint.className = 'hint';
+  hint.textContent = helpText.hint;
+  box.replaceChildren(summary, hint);
+  for (const topic of helpTopics) {
+    const section = document.createElement('details');
+    section.className = 'help-topic';
+    const title = document.createElement('summary');
+    title.textContent = topic.title;
+    section.append(title);
+    for (const text of topic.text) {
+      const paragraph = document.createElement('p');
+      paragraph.textContent = text;
+      section.append(paragraph);
+    }
+    box.append(section);
+  }
 }
