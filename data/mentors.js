@@ -105,6 +105,13 @@ export const gifts = [
 export const mentorText = {
   retireTitle: 'Retire in {town}?',
   retireBody: 'At {age}, {first} could settle in {town} as a mentor. Heroes who start in {town} later would learn from them.',
+  // Added to the retire card: how many mentors the town has now. Only its newest few give gifts
+  // (see mentorSettings), so when it's full, the oldest of them steps back. {oldest} is their first name.
+  retireMentors: {
+    none: '{town} has no mentors yet.',
+    some: ['{town} has 1 mentor already.', '{town} has {count} mentors already.'],
+    full: '{town} already has {count} mentors, so the oldest, {oldest}, would step back to make room.',
+  },
   retire: 'Retire here',
   retireDetail: 'Become a mentor in {town}',
   stay: 'Keep adventuring',

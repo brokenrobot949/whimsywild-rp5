@@ -36,7 +36,7 @@ The log timestamps events by season and age, for example "Autumn, age 34: slew t
 **How a life ends**
 
 - **Death** can happen in combat or through risky events. The hero leaves a grave on the map where they fell.
-- **Retirement** happens by choice in a town from age 60, or automatically around 70. The hero settles in that town as a mentor. A hero who reaches 70 away from a town settles in the last town they visited.
+- **Retirement** happens by choice in a town from age 60, or automatically around 70. The hero settles in that town as a mentor. A hero who reaches 70 away from a town settles in the last town they visited. The card that asks whether to retire says how many mentors the town has already, and when it has its full three, which of them would step back.
 
 Retirement should always be the better outcome for future heroes. That creates real tension around risky choices late in life.
 
@@ -211,7 +211,7 @@ Once discovered, a town becomes a starting point for future heroes. Heroes start
 
 **Steering with rumors**
 
-- In a town or at camp, the player picks one of 2–3 rumors, each showing a rough direction and a danger rating of 1–3 skulls.
+- In a town or at camp, the player picks one of 2–3 rumors, each showing a rough direction and a danger rating of 1–3 skulls. A rumor leading somewhere no hero has found yet carries a teal "✦ Unexplored" badge, so new ground stands out.
 - One rumor always suits the hero: a place that is near and in a region that fits their level. Auto-decide picks the best-suited rumor, weighing a level of mismatch against a walk of about 30 tiles. A town's new recruits, who start one level below its region, count as ready for that region.
 - Example: "A dragon naps on Mount Grumble" or "The miller's cat vanished near the old ruins."
 - The hero travels there automatically, with encounters and events along the way.

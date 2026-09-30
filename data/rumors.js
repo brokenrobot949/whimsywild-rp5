@@ -36,7 +36,7 @@ export const rumorText = {
   townTitle: 'Rumors in {town}',
   campTitle: 'Rumors around the campfire',
   detail: '{distance} to the {direction} · {region}',
-  unexplored: 'unexplored',
+  unexplored: '✦ Unexplored', // marks rumors that lead somewhere no hero has found yet
 };
 
 // Log lines. {town}, {place} and {direction} are filled in automatically.

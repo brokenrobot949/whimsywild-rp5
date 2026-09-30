@@ -12,7 +12,8 @@ import { eventById, oddsWord } from './events.js';
 import { originById } from './background.js';
 import { dreamById } from './dreams.js';
 import { dreamText } from '../../data/dreams.js';
-import { mentorText } from '../../data/mentors.js';
+import { mentorText, mentorSettings } from '../../data/mentors.js';
+import { mentorsFor } from './mentors.js';
 import { dungeonText } from '../../data/dungeons.js';
 import { castleText } from '../../data/castles.js';
 import { regions } from '../../data/regions.js';
@@ -156,6 +157,13 @@ export function createUi(art) {
         const line = document.createElement('span');
         line.className = `option-${key}`;
         line.textContent = text;
+        // A badge that stands out at the end of the detail line, like "Unexplored" on a rumor.
+        if (key === 'detail' && option.badge) {
+          const badge = document.createElement('span');
+          badge.className = 'option-badge';
+          badge.textContent = option.badge;
+          line.append(' ', badge);
+        }
         button.append(line);
       }
       button.onclick = () => choose(index);
@@ -470,7 +478,8 @@ export function createUi(art) {
           return {
             title: text,
             note: danger.skull.repeat(placeSkulls(hero.level, place, world)),
-            detail: world.discovered.has(place.name) ? where : `${where} · ${rumorText.unexplored}`,
+            detail: where,
+            badge: world.discovered.has(place.name) ? null : rumorText.unexplored, // new ground stands out
           };
         });
       } else if (choice.kind === 'retreat') {
@@ -485,7 +494,14 @@ export function createUi(art) {
       } else if (choice.kind === 'retire') {
         const values = { town: choice.town, age: hero.age, first: hero.name.split(' ')[0] };
         title = fill(mentorText.retireTitle, values);
-        body = fill(mentorText.retireBody, values);
+        // How many mentors the town has now, and who would step back if it's full.
+        const mentors = mentorsFor(world, choice.town);
+        const count = mentors.length;
+        const lines = mentorText.retireMentors;
+        const mentorsNow = count === 0 ? lines.none
+          : count < mentorSettings.gifts ? lines.some[count === 1 ? 0 : 1]
+            : lines.full;
+        body = `${fill(mentorText.retireBody, values)} ${fill(mentorsNow, { ...values, count, oldest: mentors.at(-1)?.name.split(' ')[0] ?? '' })}`;
         options = [
           { title: mentorText.retire, detail: fill(mentorText.retireDetail, values) },
           { title: mentorText.stay, detail: mentorText.stayDetail },
