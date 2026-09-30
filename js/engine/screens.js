@@ -309,10 +309,15 @@ export function createScreens({ art, world, getLife, getLives }) {
     panel.append(element('h3', '', chronicleText.worldHeading), statList(worldRows));
 
     panel.append(element('h3', '', chronicleText.heroesHeading));
-    if (lives.length === 0) {
-      panel.append(element('p', 'muted', chronicleText.empty));
-      return;
-    }
+    // (The heroes' numbers wait for the first finished life; the rest shows straight away.)
+    if (lives.length === 0) panel.append(element('p', 'muted', chronicleText.empty));
+    else renderHeroStats(panel, lives, statList, counted);
+
+    renderWorldRecords(panel, act, towns);
+  }
+
+  // The Chronicle's numbers about every hero who has finished a life.
+  function renderHeroStats(panel, lives, statList, counted) {
     const stats = chronicleStats(lives);
     panel.append(statList([
       [chronicleText.heroes, stats.heroes.toLocaleString()],
@@ -330,7 +335,10 @@ export function createScreens({ art, world, getLife, getLives }) {
       [chronicleText.longest, fill(chronicleText.longestValue, stats.longest)],
       [chronicleText.highest, fill(chronicleText.highestValue, stats.highest)],
     ]));
+  }
 
+  // The Chronicle's records of the world: mentors, monster castles, the lullaby and dream shards.
+  function renderWorldRecords(panel, act, towns) {
     // The retired heroes of each town: the newest are its mentors, the rest residents.
     const mentorList = element('ul', 'plain-list');
     for (const town of towns) {
@@ -379,8 +387,17 @@ export function createScreens({ art, world, getLife, getLives }) {
         );
         song.append(item);
       }
-      const lost = verses.length - world.verses.length;
-      if (lost > 0) song.append(element('li', 'muted', lost === 1 ? verseText.lostOne : fill(verseText.lost, { count: lost })));
+      // Each lost verse heroes can reach now gets a small hint; the rest are only counted, so
+      // regions still under mist aren't spoiled.
+      const lost = verses.filter((verse) => !world.verses.some((found) => found.id === verse.id));
+      const reachable = lost.filter((verse) => !isSealed(world, verse.region));
+      for (const verse of reachable) {
+        const item = element('li', 'verse-lost');
+        item.append(element('b', '', verseText.lostTitle), element('div', 'verse-hint', verse.hint));
+        song.append(item);
+      }
+      const later = lost.length - reachable.length;
+      if (later > 0) song.append(element('li', 'muted', fill(verseText.notYet[later === 1 ? 0 : 1], { count: later })));
       panel.append(song);
     }
 

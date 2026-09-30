@@ -14,6 +14,7 @@ for (const verse of verses) {
   if (!place || !['dungeon', 'castle'].includes(place.kind)) throw new Error(`${owner} is hidden in "${verse.place}", which needs to be a dungeon or castle in data/regions.js.`);
   if (!regions[verse.region]) throw new Error(`${owner} is in the region "${verse.region}", which isn't in data/regions.js.`);
   if (!verse.lines?.length) throw new Error(`${owner} needs some lines.`);
+  if (!verse.hint) throw new Error(`${owner} needs a hint, a small clue for the Chronicle.`);
   verse.skill.ranks.forEach((rank, i) => checkEffects(rank, `${owner} (rank ${i + 1})`));
   if (verses.filter((other) => other.id === verse.id).length > 1) throw new Error(`There are two verses with the id "${verse.id}" in data/verses.js.`);
 }

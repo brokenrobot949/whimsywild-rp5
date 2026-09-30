@@ -337,6 +337,7 @@ In the game (numbers in `data/verses.js`), there are seven verses. Smokecrown's,
 - A verse in a dungeon is well hidden: each hero who clears that dungeon has a 1 in 4 chance to find it. A verse in a castle is always found by the hero who conquers the castle. (If a castle fell before the lullaby was known, the next hero to visit it finds the verse.)
 - While a verse is lost, rumors about its hiding place come up twice as often, with an extra rumor that hints at the song.
 - Finding a verse is logged with a music-box phrase of the lullaby. It's a grand deed, earns the epithet "the Songfinder", and the Chronicle shows each found verse's words and who found it.
+- **Hints in the Chronicle.** Each lost verse that heroes can reach now shows "A lost verse" with a small clue pointing to its region, such as "A greedy baron in the Glittering Flank keeps it locked up with his gold." Verses hidden in dungeons also say they're well hidden and may take more than one visit. A verse in a region still under mist (Smokecrown's, before Act 3) gets no clue, only a line counting it as "somewhere no hero can reach yet". The clues are the `hint` of each verse in `data/verses.js`.
 - Each verse is a skill with three ranks, like any other, but with no tag: its card shows a purple "Lullaby" chip. Found verses join the skills offered at skill picks for every later hero. Learning one doesn't add to any tag, so it doesn't shape the hero's class. Auto-decide rates a verse one point below the hero's strongest tag.
 - Once every verse is found, about half of heroes learn one.
 

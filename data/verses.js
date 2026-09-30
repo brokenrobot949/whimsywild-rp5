@@ -14,6 +14,8 @@
 //   place   the dungeon or castle it's hidden in (from regions.js)
 //   lines   the words of the verse, shown in the Chronicle. The first line is the skill's flavor
 //   rumor   an extra rumor about the place, heard while the verse is still lost (under ~60 characters)
+//   hint    a small clue in the Chronicle about where it's hidden, shown while it's lost and
+//           heroes can reach it. Point to the region, not the exact place
 //   skill   what the skill does: kind 'active' or 'passive', and ranks, just like skills.js
 
 export const verseSettings = {
@@ -37,6 +39,7 @@ export const verses = [
       "the summer's lazy river will rock you soft and slow.",
     ],
     rumor: 'A song is scratched on the walls of the Snoring Burrow.',
+    hint: "Something in the Tailwoods snores louder than any badger. The verse is well hidden there: it may take more than one visit.",
     skill: {
       kind: 'passive',
       ranks: [{ healing: 0.4 }, { healing: 0.7 }, { healing: 1 }],
@@ -49,6 +52,7 @@ export const verses = [
       'no hungry dream can find you, so rest your weary head.',
     ],
     rumor: 'An old lullaby is carved on a beam in the Root Cellar.',
+    hint: "Hindhill's farmers once carved it somewhere they kept their roots for winter. It's well hidden: it may take more than one visit.",
     skill: {
       kind: 'passive',
       ranks: [{ boost: { maxHp: 0.06 } }, { boost: { maxHp: 0.1 } }, { boost: { maxHp: 0.14 } }],
@@ -61,6 +65,7 @@ export const verses = [
       'the richest dream of all is one that makes you smile.',
     ],
     rumor: 'Baron Goldtooth keeps a song locked up with his gold.',
+    hint: "A greedy baron in the Glittering Flank keeps it locked up with his gold.",
     skill: {
       kind: 'passive',
       ranks: [
@@ -77,6 +82,7 @@ export const verses = [
       'the smallest things sleep soundest, safe inside the dark.',
     ],
     rumor: 'A lost verse grows in the moss of Pinion Tower.',
+    hint: "It grows in the moss at the top of a tower in the Wingshade Fens.",
     skill: {
       kind: 'passive',
       ranks: [{ dodge: 4 }, { dodge: 6 }, { dodge: 8 }],
@@ -89,6 +95,7 @@ export const verses = [
       'there are no dragons left to fight at the end of the day.',
     ],
     rumor: 'The knights in the Barrow were buried with a song.',
+    hint: "The knights of the Spine Peaks were buried with it. It's well hidden: it may take more than one visit.",
     skill: {
       kind: 'active',
       ranks: [
@@ -105,6 +112,7 @@ export const verses = [
       'lay down your shield, my darling, the night will watch for you.',
     ],
     rumor: 'The Bone Marshal hums a tune he cannot finish.',
+    hint: "A marshal of the Clawlands' old war hums it in his fortress, and can't remember the end.",
     skill: {
       kind: 'active',
       ranks: [
@@ -121,6 +129,7 @@ export const verses = [
       'and we will remember who you were, and love you as you are.',
     ],
     rumor: 'The king of Hornhold guards the last verse of a lullaby.',
+    hint: "A forgotten king guards it, on the very tip of Smokecrown's horn.",
     skill: {
       kind: 'passive',
       ranks: [
@@ -138,8 +147,9 @@ export const verseText = {
   chipColor: '#8a5a9e',
   heading: 'The lullaby: {found} of {total} verses',
   foundBy: 'Found at {place} by {hero}, age {age}.',
-  lost: 'Still lost: {count} verses.',
-  lostOne: 'Still lost: 1 verse.',
+  lostTitle: 'A lost verse',     // above each hint, for verses heroes can find now
+  // For lost verses in regions no hero can reach yet (their hints stay hidden until then).
+  notYet: ['1 more verse lies somewhere no hero can reach yet.', '{count} more verses lie somewhere no hero can reach yet.'],
 };
 
 // Log lines. {title} is the verse's title.

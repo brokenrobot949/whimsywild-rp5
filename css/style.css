@@ -427,6 +427,8 @@ body[data-card="open"]:not([data-tab="adventure"]) #tabs [data-tab="adventure"]:
 .log-story { color: #8a5a9e; font-style: italic; }
 .log-tavern { color: #6b5a4a; font-style: italic; }
 .verse-words { margin: 2px 0; font-style: italic; color: #5e4a6e; }
+.verse-lost b { color: var(--ink-soft); }
+.verse-hint { margin-top: 2px; font-size: 0.9rem; font-style: italic; color: #2f6f8a; }
 
 /* The map shakes when the Sleeper stirs. */
 #map.shaking { animation: tremor 0.9s ease-out; }
