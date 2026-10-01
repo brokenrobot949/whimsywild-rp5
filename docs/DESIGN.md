@@ -371,6 +371,17 @@ In the game, this is Act 4, **Sweet Dreams** (numbers in `sweetDreams` in `data/
 - Everything else goes on as before: castles stay conquered, verses are still offered as skills, and the Nightmare stays closed.
 - **Debug:** "Next act" in Act 3 with every verse found sings the song in the name of "Debug", so Act 4 can be tried straight away.
 
+**New Game+: Sominus Rolls Over**
+
+Once the dragon sleeps (Act 4), the player can let it dream again, and discover the world all over again. The numbers and words are in `data/new-dream.js`.
+
+- **When:** the Chronicle's Act 4 section has a button, "Let Sominus dream again". It asks first, with three choices: a gentle dream, a restless dream, or not yet. If a hero is in the middle of their adventure, they finish it first: their log says the ground has begun to tilt, and the world turns over once their tale ends. Otherwise it turns over straight away.
+- **The world turns over:** a card, "Sominus Rolls Over", begins the new dream. The land is made exactly as before and then turned: mirrored left to right in the second dream, upside down in the third, both in the fourth, then round again. Places keep their names, but where they lie, and which way rumors point, change. Because everything turns together, distances, castles and balance all work just as they did.
+- **What resets:** the fog, every town but Tailsend, graves, mentors, dream shards, conquered castles, found verses and the story (back to Act 1).
+- **What carries over:** every hero stays in the Hall of Champions, and once there has been more than one dream, each card says which dream it belongs to. The Chronicle gains a "Past dreams" list: who sang each dream to sleep, at what age, after how many heroes, and whether it was restless.
+- **The legend:** the hero who last sang the lullaby becomes the new dream's legend. Every hero of the new dream carries their gift (+5% max HP and power), shown on the New Hero card, and Act 1's retelling begins with the old tale of how they once sang the dragon to sleep.
+- **Gentle or restless:** a gentle dream plays just like the first. A restless dream makes monsters 3% tougher, and heroes earn 25% more gold and experience. It's shown on the New Hero card. In test runs, about 8 heroes in 100 died in a gentle second dream and about 10 in a restless one, with restless heroes ending two or three levels higher.
+
 **Tonight's dream**
 
 Every life opens with a run modifier describing what the dragon dreams about tonight. Target 12 for v1.
@@ -400,7 +411,7 @@ Everything a hero discovers or changes stays in the world for every hero after t
 | Dream shards | Saved as lore entries in the Chronicle |
 | Graves | A dead hero leaves a tombstone where they fell; a later hero passing by can pay respects and recover one heirloom (their best item, scaled to the new hero) |
 | Mentors | Retired heroes settle in a town, and each of the town's three most recent mentors gives a future hero starting there one gift, drawn at random from a pool: usually a lesson, some gold or a few class tricks, sometimes something valuable, sometimes a funny dud. Older retirees stay listed as residents |
-| Hall of Champions and Chronicle | Every hero and every lifetime stat is recorded |
+| Hall of Champions and Chronicle | Every hero and every lifetime stat is recorded, across every dream of New Game+ |
 
 Graves and mentors make death and retirement feel different: death leaves an heirloom out in the world, while retirement strengthens a town for everyone who starts there.
 
@@ -580,6 +591,7 @@ Every design question is decided.
 | Smokecrown | Opens when Act 3 begins, at once. Lastlight (level 24), four landmarks with shards, the Forgotten Attic dungeon, and Hornhold castle with the seventh verse. See "Smokecrown" above |
 | The finale | Once all seven verses are found, the Deepest Nightmare opens through Lidwater: a dream from each region, then the song, where the hero sings each verse as the Nightmare weakens. The hero who finishes it ends their life right there as "the Lullaby-Singer", and the ending scrolls every hero ever run. See "The finale" above |
 | The post-game | Act 4, Sweet Dreams, begins when the song is sung and never ends: every region 3% calmer, no more storm or giant dreams, four new gentle dreams, a new story event per region, new rumors and tavern talk. See "After the ending" above |
+| New Game+ | From Act 4, the player can let Sominus dream again: the map turns a new way (mirrored, upside down, both), the fog and the story start over, the singer becomes a legend whose gift every hero carries, and the new dream is gentle or restless. The Hall of Champions and a list of past dreams carry over. See "New Game+: Sominus Rolls Over" above |
 | Dangerous ground | Heroes steer around regions whose lowest monster level is more than 3 above their own, unless that region is where they're going, and they only head "home" to towns in regions they can handle. So a hero only faces a far tougher region by choosing a risky rumor, never by taking a shortcut |
 | Graves and heirlooms | A fallen hero's tombstone stays on the map, marked with their first name (the 30 most recent are kept). Their best item waits beside it as an heirloom, shown by a gold sparkle. The first later hero to pass within 3 tiles pays respects and takes it, remade at their own level; they wear it if it's better, or sell it. Taking one earns the epithet "the Heir" |
 | Rumor choices per life | About 7–9 at the end of Phase 2, above the 3–5 in the decision budget. Kept as they are for now; revisit once story events add their own decisions |

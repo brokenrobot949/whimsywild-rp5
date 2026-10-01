@@ -8,6 +8,7 @@ import { statNames } from '../../data/items.js';
 import { families } from '../../data/monsters.js';
 import { quirks } from '../../data/quirks.js';
 import { dreams } from '../../data/dreams.js';
+import { moods } from '../../data/new-dream.js';
 import { fill, capitalize } from './text.js';
 
 const TAG_IDS = tags.map((tag) => tag.id);
@@ -92,7 +93,7 @@ export function activeSkills(hero) {
 // ---- Effects ----
 
 // Adds up the always-on effects of the hero's passive skills, class perks, blessings, mentors,
-// quirk and tonight's dream.
+// quirk, tonight's dream, and a restless New Game+ dream.
 export function totalEffects(hero) {
   const total = { boost: {}, against: {} };
   const add = (effects) => {
@@ -117,6 +118,8 @@ export function totalEffects(hero) {
   if (quirk) add(quirk.effects);
   const dream = dreams.find((option) => option.id === hero.dream); // tonight's dream (see dreams.js)
   if (dream?.effects) add(dream.effects);
+  const mood = moods[hero.mood]; // a restless New Game+ dream (see new-dream.js)
+  if (mood?.effects) add(mood.effects);
   return total;
 }
 

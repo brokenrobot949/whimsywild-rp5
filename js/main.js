@@ -2,10 +2,10 @@
 import { buildWorld, refreshSeals } from './engine/map.js';
 import {
   createLife, beginLife, stepLife, lifeRecord, lifeStatus, currentChoice, autoChoice, makeChoice,
-  packLife, unpackLife, startingTowns, nameHero,
+  packLife, unpackLife, startingTowns, nameHero, addStoryLine,
 } from './engine/life.js';
 import { randomSeed } from './engine/rng.js';
-import { loadSave, writeSave, clearSave, exportCode, importCode } from './engine/save.js';
+import { loadSave, writeSave, clearSave, exportCode, importCode, newWorld } from './engine/save.js';
 import { on } from './engine/game-events.js';
 import { createMapView } from './engine/map-view.js';
 import { createUi } from './engine/ui.js';
@@ -20,6 +20,9 @@ import { loadMentors, mentorsFor } from './engine/mentors.js';
 import { loadShards } from './engine/shards.js';
 import { loadConquered } from './engine/castles.js';
 import { loadVerses, unseenActs, skipToNextAct, currentAct, actInfo } from './engine/story.js';
+import { turnOf, nextDream, pastDream } from './engine/new-dream.js';
+import { fill } from './engine/text.js';
+import { moods, newDreamText } from '../data/new-dream.js';
 import { dreamById, rollDream } from './engine/dreams.js';
 import { regionAt } from './engine/map.js';
 import { regions } from '../data/regions.js';
@@ -41,7 +44,9 @@ const params = new URLSearchParams(location.search);
 const debugMode = params.has('debug');
 
 const save = loadSave();
-const world = buildWorld();
+// New Game+: each new dream, the land lies a different way round (see new-dream.js).
+const world = buildWorld(turnOf(save.world.cycle?.number ?? 1));
+world.cycle = save.world.cycle ?? world.cycle;
 // What earlier heroes explored. The first town is always known.
 unpackFog(world, save.world.revealed);
 world.discovered = new Set(save.world.discovered);
@@ -69,7 +74,15 @@ let savingOn = true;      // switched off just before the page reloads with a di
 let lastSaved = 0;
 let warnedSaveFailed = false;
 
-const screens = createScreens({ art, world, getLife: () => life, getLives: () => save.lives });
+const screens = createScreens({
+  art,
+  world,
+  getLife: () => life,
+  getLives: () => save.lives,
+  getPastDreams: () => save.pastDreams ?? [],
+  getPendingDream: () => save.pendingDream ?? null,
+  onNewDream: () => offerNewDream(),
+});
 const audio = createAudio(); // silent until the player's first tap
 const settings = createSettingsPanel({
   getAutoDecide: () => save.settings.autoDecide,
@@ -113,12 +126,7 @@ const debug = debugMode
       ui.showEnding(save.lives, () => {
         // The ending's closing card replaced whatever card was up, so put things back.
         pauses.delete('ending');
-        if (!life.begun) showNewHeroCard();
-        else if (life.ending) startLife(randomSeed());
-        else {
-          pauses.delete('card');
-          if (currentChoice(life)) offerChoice();
-        }
+        restoreCards();
       }, { ...actInfo(4).interlude, button: storyText.interludeButton }); // Act 4's card, as in play
     },
   })
@@ -152,6 +160,7 @@ function saveProgress(force = false) {
     verses: world.verses,
     actSeen: world.actSeen,
     finale: world.finale,
+    cycle: world.cycle,
   };
   if (!writeSave(save) && !warnedSaveFailed) {
     warnedSaveFailed = true;
@@ -183,6 +192,22 @@ function startLife(seed, town = defaultTown(), rerollsLeft = null, dream = newDr
 
 // Before a new hero, the interlude of each act that has begun since the player last saw one.
 function showInterludes(then) {
+  // A new dream begins with its own card (see New Game+ below).
+  if (save.rollOver) {
+    pauses.add('card');
+    screens.show('adventure');
+    const legend = world.cycle?.legend;
+    const values = {
+      legend: legend ? `${legend.name} ${legend.epithet}`.trim() : '',
+      mood: newDreamText.moodLines[world.cycle?.mood] ?? '',
+    };
+    ui.showMessage({ title: newDreamText.rollOverTitle, body: newDreamText.rollOverBody, button: storyText.interludeButton }, values, () => {
+      delete save.rollOver;
+      saveProgress(true);
+      showInterludes(then);
+    });
+    return;
+  }
   const [act] = unseenActs(world);
   if (!act) {
     then();
@@ -274,9 +299,79 @@ function finishLife() {
   screens.refresh();
   pauses.add('card');
   screens.show('adventure');
-  // The hero who sang the dragon to sleep: their card, then the ending, then the next hero.
-  const next = life.ending.kind === 'sang' ? () => ui.showEnding(save.lives, () => startLife(randomSeed())) : () => startLife(randomSeed());
+  showEndCard();
+}
+
+// The card at the end of a life. The hero who sang the dragon to sleep gets the ending after it.
+function showEndCard() {
+  const next = life.ending.kind === 'sang' ? () => ui.showEnding(save.lives, nextHero) : nextHero;
   ui.showMessage(cards.end, cardValues(), next);
+}
+
+// After a life: the next hero, or a new dream if the player asked for one during this life.
+function nextHero() {
+  if (save.pendingDream) rollOver(save.pendingDream);
+  else startLife(randomSeed());
+}
+
+// Puts back whatever card was up before another card (like the new dream's) took its place.
+function restoreCards() {
+  if (!life.begun) showNewHeroCard();
+  else if (life.ending) showEndCard();
+  else {
+    pauses.delete('card');
+    if (currentChoice(life)) offerChoice();
+  }
+}
+
+// ---- New Game+: letting Sominus dream again (see new-dream.js) ----
+
+// Offered from the Chronicle in Act 4: a gentle dream, a restless one, or not yet. A hero in the
+// middle of their adventure finishes it first; otherwise the world turns over straight away.
+function offerNewDream() {
+  if (save.pendingDream || !world.finale) return;
+  pauses.add('new-dream');
+  screens.show('adventure');
+  const ids = Object.keys(moods);
+  const singer = `${world.finale.hero} ${world.finale.epithet}`.trim();
+  ui.showPrompt({
+    title: newDreamText.promptTitle,
+    body: fill(newDreamText.promptBody, { singer }),
+    options: [
+      ...ids.map((id) => ({ title: moods[id].name, detail: moods[id].detail })),
+      { title: newDreamText.notYet, detail: newDreamText.notYetDetail },
+    ],
+    onPick: (index) => {
+      pauses.delete('new-dream');
+      const mood = ids[index];
+      if (mood && (!life.begun || life.ending)) {
+        rollOver(mood);
+        return;
+      }
+      if (mood) {
+        save.pendingDream = mood;
+        addStoryLine(life, newDreamText.pendingLine);
+        saveProgress(true);
+        screens.refresh();
+      }
+      restoreCards();
+    },
+  });
+}
+
+// The dragon rolls over: this dream goes into the Chronicle's past dreams, and a new world begins,
+// turned a new way, with the singer as its legend. The page reloads to build the new world.
+function rollOver(mood) {
+  const number = world.cycle?.number ?? 1;
+  const heroes = save.lives.filter((record) => (record.cycle ?? 1) === number).length;
+  save.pastDreams = [...(save.pastDreams ?? []), pastDream(world, heroes)];
+  save.world = newWorld(nextDream(world, mood));
+  save.current = null;
+  delete save.pendingDream;
+  save.rollOver = true; // the card that begins the new dream, shown after the reload
+  savingOn = false;     // so the old world isn't saved over the new one as the page reloads
+  writeSave(save);
+  location.reload();
 }
 
 // Shows the waiting choice (a skill, class, rumor or story event). The clock stays stopped

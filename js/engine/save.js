@@ -6,7 +6,9 @@
 //   lives     a record of every finished life (Hall of Champions, Chronicle, playtest log)
 //   current   the hero in the middle of their life, or null between heroes
 //   world     what heroes have left behind: the fog lifted, the places discovered, graves,
-//             mentors, dream shards, conquered castles, verses of the lullaby, and the story's act
+//             mentors, dream shards, conquered castles, verses of the lullaby, the story's act,
+//             and which dream it is (New Game+; see new-dream.js)
+//   pastDreams  the dreams finished before this one, for the Chronicle
 //   settings  the player's settings, like Auto-decide
 
 import { places } from '../../data/regions.js';
@@ -17,7 +19,7 @@ const SAVE_KEY = `${PREFIX}save`;
 const CODE_PREFIX = 'WWRP5:'; // the start of every save code
 
 // Raise this whenever the save format changes, and add a matching step to `upgrades`.
-export const SAVE_VERSION = 8;
+export const SAVE_VERSION = 9;
 
 // Each step upgrades a save from one version to the next, so old saves keep working.
 const upgrades = {
@@ -42,6 +44,9 @@ const upgrades = {
   // Version 8 adds the verses of the lullaby found so far, and the latest act whose interlude
   // has been shown (none found, and Act 1, before the story began).
   7: (save) => ({ ...save, world: { ...save.world, verses: [], actSeen: 1 } }),
+  // Version 9 adds New Game+: which dream the world is in (the first, before New Game+ existed),
+  // and the dreams finished so far (none).
+  8: (save) => ({ ...save, pastDreams: [], world: { ...save.world, cycle: save.world.cycle ?? firstDream() } }),
 };
 
 // Mentors for heroes who retired before mentors existed, from their Hall of Champions records.
@@ -66,11 +71,16 @@ function mentorsFromRecords(lives) {
 }
 
 function newSave() {
-  return { version: SAVE_VERSION, lives: [], current: null, world: newWorld(), settings: { autoDecide: false } };
+  return { version: SAVE_VERSION, lives: [], current: null, world: newWorld(), settings: { autoDecide: false }, pastDreams: [] };
 }
 
-function newWorld() {
-  return { revealed: '', discovered: [], graves: [], mentors: [], shards: [], conquered: [], verses: [], actSeen: 1 };
+// A world with nothing discovered yet. `cycle` is the dream it belongs to (see new-dream.js).
+export function newWorld(cycle = firstDream()) {
+  return { revealed: '', discovered: [], graves: [], mentors: [], shards: [], conquered: [], verses: [], actSeen: 1, cycle };
+}
+
+function firstDream() {
+  return { number: 1, mood: 'gentle', legend: null };
 }
 
 export function loadSave() {

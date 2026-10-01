@@ -16,6 +16,8 @@ import { castleText } from '../../data/castles.js';
 import { currentAct, actInfo, verseById, isSealed } from './story.js';
 import { storyText, storySettings, acts, actChronicle } from '../../data/story.js';
 import { isFinaleOpen } from './finale.js';
+import { ordinal } from './new-dream.js';
+import { newDreamText } from '../../data/new-dream.js';
 import { verses, verseText, verseSettings } from '../../data/verses.js';
 import { regions } from '../../data/regions.js';
 import { chronicleStats } from './records.js';
@@ -35,7 +37,9 @@ const STAT_ORDER = ['power', 'defense', 'speed', 'luck'];
 // Events that change what the Hero tab shows.
 const HERO_EVENTS = ['season', 'arrive', 'fight-end', 'level-up', 'equip', 'choice-made', 'potion', 'shop', 'epithet'];
 
-export function createScreens({ art, world, getLife, getLives }) {
+// New Game+: getPastDreams() lists the finished dreams, getPendingDream() says if a new one is
+// waiting for the current hero to finish, and onNewDream() offers the player a new dream.
+export function createScreens({ art, world, getLife, getLives, getPastDreams, getPendingDream, onNewDream }) {
   const panels = {
     adventure: document.getElementById('panel-adventure'),
     hero: document.getElementById('panel-hero'),
@@ -264,12 +268,26 @@ export function createScreens({ art, world, getLife, getLives }) {
       summary.append(fill(storyText.actValue, info));
       if (number === act) summary.append(' ', element('span', 'story-now', storyText.now));
       section.append(summary);
+      // In every dream after the first, Act 1 begins with the old tale of the legend.
+      const legend = world.cycle?.legend;
+      if (number === 1 && legend) section.append(element('p', '', fill(newDreamText.oldTale, { legend: `${legend.name} ${legend.epithet}`.trim() })));
       for (const paragraph of telling.story) section.append(element('p', '', fill(paragraph, values)));
       const next = number === act ? ((isFinaleOpen(world) && telling.nextOpen) || telling.next) : null;
       if (next) {
         const hint = element('p', 'story-next');
         hint.append(element('b', '', `${storyText.nextLabel}: `), fill(next, values));
         section.append(hint);
+      }
+      // Once the dragon sleeps, the player can let it dream again (New Game+).
+      if (number === act && world.finale) {
+        if (getPendingDream()) {
+          section.append(element('p', 'story-next', newDreamText.pending));
+        } else {
+          const button = element('button', 'new-dream-button', newDreamText.button);
+          button.type = 'button';
+          button.onclick = onNewDream;
+          section.append(button);
+        }
       }
       box.append(section);
     }
@@ -297,6 +315,25 @@ export function createScreens({ art, world, getLife, getLives }) {
 
     // The story so far: each act reached can be opened to read it again.
     panel.append(element('h3', '', storyText.chronicleAct), storySoFar(act));
+
+    // New Game+: the dreams before this one, and who sang each to sleep.
+    const past = getPastDreams();
+    if (past.length > 0) {
+      panel.append(element('h3', '', newDreamText.pastHeading));
+      const list = element('ul', 'plain-list');
+      for (const dream of past) {
+        const item = element('li');
+        item.append(element('b', '', fill(newDreamText.pastTitle, { ordinal: ordinal(dream.number) })));
+        if (dream.singer) {
+          const singer = `${dream.singer.name} ${dream.singer.epithet}`.trim();
+          item.append(element('div', 'muted', fill(newDreamText.pastEntry, { singer, age: dream.singer.age, heroes: dream.heroes })));
+        }
+        if (dream.mood === 'restless') item.append(element('div', 'muted', newDreamText.pastRestless));
+        list.append(item);
+      }
+      list.append(element('li', 'muted', fill(newDreamText.current, { ordinal: ordinal(world.cycle?.number ?? 1) })));
+      panel.append(list);
+    }
 
     const castlesOpen = world.places.filter((place) => place.kind === 'castle' && !isSealed(world, place.region));
     const worldRows = [
@@ -439,6 +476,8 @@ export function createScreens({ art, world, getLife, getLives }) {
     }
     panel.append(element('p', 'muted', hallText.tapHint));
     const list = element('div', 'hall-list');
+    // Once there's been more than one dream (New Game+), each card says which dream it's from.
+    const manyDreams = getPastDreams().length > 0;
     for (const record of [...lives].reverse()) {
       const card = element('button', 'hall-card');
       card.type = 'button';
@@ -455,6 +494,7 @@ export function createScreens({ art, world, getLife, getLives }) {
       if (background) text.append(element('div', 'muted', background));
       if (record.deed) text.append(element('div', '', fill(hallText.deed, { deed: record.deed }))); // older saves have none
       text.append(element('div', 'flavor', record.endingText));
+      if (manyDreams) text.append(element('div', 'dream-tag', fill(newDreamText.hallTag, { ordinal: ordinal(record.cycle ?? 1) })));
       card.append(text);
       card.onclick = () => {
         openLog = record;

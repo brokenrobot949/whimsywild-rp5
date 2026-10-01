@@ -34,6 +34,7 @@ import { isConquered, conquer, regionCalm } from './castles.js';
 import { castleLines } from '../../data/castles.js';
 import { currentAct, actInfo, lostVerseAt, keepVerse, foundVerseIds, isSealed, regionsOpeningIn } from './story.js';
 import { verses, verseSettings, verseLines } from '../../data/verses.js';
+import { legendGift, moodById } from './new-dream.js';
 import { storySettings, tavernLines } from '../../data/story.js';
 import { dungeonSettings, dungeonLines } from '../../data/dungeons.js';
 import { shardSettings, shardLines } from '../../data/shards.js';
@@ -82,6 +83,9 @@ export function createLife(world, seed, { town, dream = null } = {}) {
     }
   }
   hero.mentors = gifts.map(({ mentor, gift }) => giveGift(rng, hero, mentor, gift, level));
+  // New Game+: every hero lives under this dream's mood, and carries the legend's gift.
+  hero.mood = world.cycle?.mood ?? 'gentle';
+  if (world.cycle?.legend) hero.mentors.unshift(legendGift(world.cycle.legend));
   refreshStats(hero);
   hero.hp = hero.stats.maxHp;
   revealAround(world, home.x, home.y, worldSettings.fogRadius); // the hero can see their home town
@@ -312,6 +316,7 @@ export function lifeRecord(life) {
     retiredTo: ending.town?.name ?? null,
     dungeonsCleared: life.dungeonsDone.length,
     castleConquered: life.conquered ?? null, // the castle this hero conquered, if any
+    cycle: life.world.cycle?.number ?? 1,     // which dream they lived in (New Game+)
     versesFound: life.tally.verses ?? 0,
     skills: { ...hero.skills },
     monstersSlain: life.monstersSlain,
@@ -396,6 +401,7 @@ export function unpackLife(world, data) {
   hero.class = hero.classPath.at(-1) ?? null;
   hero.blessings ??= []; // saves from before story events
   hero.mentors ??= [];   // saves from before mentors
+  hero.mood ??= 'gentle'; // saves from before New Game+
   if (!originById(hero.origin)) hero.origin = null; // saves from before origins, or one since removed
   if (!quirkById(hero.quirk)) hero.quirk = null;
   if (!dreamById(hero.dream)) hero.dream = null; // saves from before dreams, or one since removed
@@ -1026,7 +1032,14 @@ function dreamOf(life) {
 // What shapes the monsters a hero meets: tonight's dream, and the regions whose castles have fallen.
 function monsterOptions(life) {
   const dream = dreamOf(life);
-  return { weights: dream.monsters, strength: dream.monsterStrength, calm: regionCalm(life.world) };
+  const restless = moodById(life.hero.mood).monsterStrength ?? 0; // a restless New Game+ dream
+  return { weights: dream.monsters, strength: dream.monsterStrength + restless, calm: regionCalm(life.world) };
+}
+
+// A line in the log about the story, from outside the life (like choosing to let Sominus dream
+// again, in the middle of a hero's life).
+export function addStoryLine(life, text) {
+  addLog(life, 'story', text);
 }
 
 // ---- Story events ----

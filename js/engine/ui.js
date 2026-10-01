@@ -5,6 +5,7 @@ import { lifeStatus, visitName } from './life.js';
 import { visitKind } from './dungeons.js';
 import { isFinaleEntrance, dreamRegion } from './finale.js';
 import { finaleText } from '../../data/finale.js';
+import { moods, newDreamText } from '../../data/new-dream.js';
 import { xpToNextLevel } from './hero.js';
 import { tagInfo, skillChip, classById, skillRank, describeEffects, quirkById } from './skills.js';
 import { placeSkulls, directionTo, distanceWord } from './rumors.js';
@@ -341,6 +342,12 @@ export function createUi(art) {
         name.textContent = `${dreamText.label}: ${dream.name}.`;
         dreamLine.append(name, ' ', dream.text);
       }
+      // A restless New Game+ dream is shown with tonight's dream.
+      if (hero.mood === 'restless') {
+        const restless = document.createElement('b');
+        restless.textContent = newDreamText.restlessLabel;
+        dreamLine.append(dream ? document.createElement('br') : '', restless, ' ', moods.restless.detail);
+      }
 
       const reroll = document.createElement('button');
       reroll.type = 'button';
@@ -371,14 +378,23 @@ export function createUi(art) {
         townList.append(button);
       }
 
-      // What the chosen town's mentors are giving this hero.
+      // What the chosen town's mentors are giving this hero, and the legend's gift (New Game+).
       const mentorLine = document.createElement('div');
       mentorLine.className = 'mentor-line';
-      if (hero.mentors.length > 0) {
+      const townMentors = hero.mentors.filter((mentor) => !mentor.legend);
+      const legend = hero.mentors.find((mentor) => mentor.legend);
+      if (legend) {
+        const line = document.createElement('p');
+        const label = document.createElement('b');
+        label.textContent = newDreamText.legendLabel;
+        line.append(label, ' ', `${legend.text}.`);
+        mentorLine.append(line);
+      }
+      if (townMentors.length > 0) {
         const heading = document.createElement('b');
         heading.textContent = fill(mentorText.label, { town: life.startTown.name });
         const list = document.createElement('ul');
-        for (const mentor of hero.mentors) {
+        for (const mentor of townMentors) {
           const item = document.createElement('li');
           item.textContent = fill(mentorText.gift, { name: mentor.name, gift: mentor.text ?? '' });
           list.append(item);
@@ -398,13 +414,19 @@ export function createUi(art) {
       };
 
       card.options.replaceChildren(
-        ...(dream ? [dreamLine] : []), nameField, about, background, reroll, townsLabel, townList,
+        ...(dream || hero.mood === 'restless' ? [dreamLine] : []), nameField, about, background, reroll, townsLabel, townList,
         ...(hero.mentors.length > 0 ? [mentorLine] : []), begin,
       );
       card.layer.hidden = false;
       document.body.dataset.card = 'open';
       document.body.dataset.picking = 'yes'; // the map keeps its size, to show the towns
       card.layer.scrollTop = card.layer.scrollHeight;
+    },
+
+    // A card with a few options and no Auto-decide, like the choice of a new dream.
+    //   options  [{ title, detail }]; onPick(index) is told which was chosen
+    showPrompt({ title, body, options, onPick }) {
+      showCard({ title, body, options, onPick });
     },
 
     // A card with one button, like Begin or Next hero. {words} in the text are filled from `values`.

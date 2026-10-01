@@ -147,6 +147,22 @@ body[data-card="open"]:not([data-tab="adventure"]) #tabs [data-tab="adventure"]:
 }
 .story-next { padding: 6px 8px; background: rgba(217, 170, 60, 0.18); border-radius: 6px; }
 
+/* New Game+: the button that lets Sominus dream again, and the dream tag on Hall cards. */
+.new-dream-button {
+  display: block;
+  width: 100%;
+  margin: 4px 0 4px;
+  padding: 10px;
+  font: inherit;
+  font-weight: bold;
+  color: #fff;
+  background: #8a5a9e;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.dream-tag { margin-top: 2px; font-size: 0.75rem; font-weight: bold; color: #8a5a9e; }
+
 .hall-list { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
 
 .hall-card {
