@@ -12,6 +12,7 @@ export const deedLines = {
   cleared: 'Cleared {place}.',
   conquered: 'Conquered {place}.',
   verse: 'Found the verse "{title}".',
+  avenged: 'Avenged {victim}.',
   none: 'Set out bravely, which counts for something.',
 };
 

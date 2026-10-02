@@ -10,6 +10,9 @@ import { sweetDreams } from '../../data/story.js';
 import { verseSettings } from '../../data/verses.js';
 import { isFinaleEntrance } from './finale.js';
 import { finaleSettings, finaleText } from '../../data/finale.js';
+import { nemesisAt, nemesisTitle, firstVictim } from './nemeses.js';
+import { nemesisSettings, nemesisText } from '../../data/nemeses.js';
+import { fill } from './text.js';
 
 // How far a region's levels are from the hero's level: 0 when the hero's level is within them.
 // Heroes count as ready for a region a few levels below its lowest (see readyBelow in rumors.js).
@@ -27,6 +30,9 @@ export function levelGap(level, regionId, harder = 0) {
 // and so is the way into the finale's Nightmare while it's open (which needs the `world`).
 export function placeHarder(place, world = null) {
   if (world && isFinaleEntrance(world, place)) return finaleSettings.harderBy;
+  // A nemesis's lair is as dangerous as the nemesis.
+  const nemesis = world && nemesisAt(world, place.name);
+  if (nemesis) return Math.max(0, nemesis.level - regions[place.region].levels[0]);
   if (place.kind === 'dungeon') return dungeonSettings.harderBy;
   if (place.kind === 'castle') return castleSettings.harderBy;
   return 0;
@@ -72,9 +78,12 @@ export function rumorOffers(rng, life) {
   const weightOf = (place) => (world.discovered.has(place.name) ? 1 : rumorSettings.fogWeight)
     * (life.recent.includes(place.name) ? rumorSettings.recentWeight : 1)
     * (lostVerseAt(world, place.name) ? verseSettings.rumorWeight : 1)
-    * (isFinaleEntrance(world, place) ? finaleSettings.rumorWeight : 1);
+    * (isFinaleEntrance(world, place) ? finaleSettings.rumorWeight : 1)
+    * (nemesisAt(world, place.name) ? nemesisSettings.rumorWeight : 1);
   const rumorsOf = (place) => {
     if (isFinaleEntrance(world, place)) return finaleText.rumors;
+    const nemesis = nemesisAt(world, place.name);
+    if (nemesis) return nemesisText.rumors.map((line) => fill(line, { nemesis: nemesisTitle(nemesis), victim: firstVictim(nemesis), place: place.logName }));
     const sweet = currentAct(world) >= 4 ? sweetDreams.rumors[place.name] ?? [] : []; // Act 4's new rumors
     const verse = lostVerseAt(world, place.name);
     return [...place.rumors, ...sweet, ...(verse ? [verse.rumor] : [])];

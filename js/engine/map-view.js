@@ -12,6 +12,9 @@ import { classes } from '../../data/classes.js';
 import { graveSettings } from '../../data/graves.js';
 import { isConquered } from './castles.js';
 import { isFinaleEntrance } from './finale.js';
+import { nemesisAt } from './nemeses.js';
+import { petKind } from './pets.js';
+import { pets } from '../../data/pets.js';
 import { TILE, picture, recolorSheet } from './art.js';
 
 const TILES_ACROSS = 12;     // roughly how many tiles fit across the map view at first
@@ -30,6 +33,8 @@ const BANNER = '#e04a36';   // the banner over a conquered castle
 const POLE = '#3b2d25';
 const HELD = '#e0523a';     // a castle still held by its boss, on the zoomed-out map
 const DREAM_GLINT = '#d7b4ff'; // the sparkle over the way into the finale
+const NEMESIS_MARK = '#e0302a'; // the mark over a nemesis's lair
+const PET_SIZE = 0.75;       // pets are drawn a little smaller than a tile
 
 // `onPointerTile(x, y)` is told which tile the pointer is over (used by debug mode).
 export function createMapView(canvas, world, art, { onPointerTile } = {}) {
@@ -42,6 +47,8 @@ export function createMapView(canvas, world, art, { onPointerTile } = {}) {
   const monsterLooks = new Map(monsters.map((kind) => [kind, picture(art, kind.sprite.sheet, kind.sprite.tile, kind.name)]));
   const classLooks = new Map(classes.map((option) => [option.id, picture(art, option.sprite.sheet, option.sprite.tile, `The class "${option.name}"`)]));
   const graveLook = picture(art, graveSettings.sprite.sheet, graveSettings.sprite.tile, 'The grave in data/graves.js');
+  const petLooks = new Map(pets.map((kind) => [kind.id, picture(art, kind.sprite.sheet, kind.sprite.tile, `The pet "${kind.kind}"`)]));
+  let petTrail = null; // where the hero's pet is walking from and to (see petPosition)
   const overview = createOverview(world, colors);
   let zoom = null;     // position in ZOOM_SIZES, set on the first fit
   let camera = null;   // where the player is looking, in tiles; null while following the hero
@@ -150,6 +157,21 @@ export function createMapView(canvas, world, art, { onPointerTile } = {}) {
   }
 
   // ---- Drawing ----
+
+  // Where the hero's pet is, in tiles: one step behind the hero, following the same road.
+  // When the hero sets off from a tile, the pet sets off for that tile from wherever it was.
+  // `beside` is true while it shares the hero's tile (so it's drawn at their side).
+  function petPosition(life, heroAt) {
+    const { step, hero } = life;
+    const here = step ? step.from : { x: hero.x, y: hero.y };
+    const far = !petTrail || petTrail.life !== life || Math.abs(petTrail.to.x - here.x) + Math.abs(petTrail.to.y - here.y) > 2;
+    if (far) petTrail = { life, from: here, to: here, step: null };
+    if (step && petTrail.step !== step) petTrail = { life, from: petTrail.to, to: step.from, step };
+    const progress = step ? heroAt.progress : 1;
+    const x = petTrail.from.x + (petTrail.to.x - petTrail.from.x) * progress;
+    const y = petTrail.from.y + (petTrail.to.y - petTrail.from.y) * progress;
+    return { x, y, beside: Math.abs(x - heroAt.x) < 0.5 && Math.abs(y - heroAt.y) < 0.5 };
+  }
 
   // `leftover` is game time not yet simulated, used to glide the hero smoothly between steps.
   function draw(life, leftover) {
@@ -262,6 +284,12 @@ export function createMapView(canvas, world, art, { onPointerTile } = {}) {
         ctx.fillRect(x + 8 * scale, y - 7 * scale, 5 * scale, 2 * scale);
         ctx.fillRect(x + 8 * scale, y - 5 * scale, 3 * scale, scale);
       }
+      if (nemesisAt(world, place.name)) {
+        // A nemesis lairs here: a red "!" by the top left corner.
+        ctx.fillStyle = NEMESIS_MARK;
+        ctx.fillRect(x + scale, y - 4 * scale, 2 * scale, 5 * scale);
+        ctx.fillRect(x + scale, y + 2 * scale, 2 * scale, 2 * scale);
+      }
       if (isFinaleEntrance(world, place)) {
         // The way into the dragon's dream is open: a violet sparkle over the entrance.
         ctx.fillStyle = DREAM_GLINT;
@@ -278,6 +306,12 @@ export function createMapView(canvas, world, art, { onPointerTile } = {}) {
       const x = grave.x * size - camX;
       const y = grave.y * size - camY;
       blit(graveLook, x, y);
+      const waiting = petKind(grave.pet); // a fallen hero's pet, waiting faithfully
+      if (waiting) {
+        const look = petLooks.get(waiting.id);
+        const small = size * PET_SIZE;
+        ctx.drawImage(look.image, look.sx, look.sy, TILE, TILE, Math.round(x + size * 0.45), Math.round(y + size - small), small, small);
+      }
       if (grave.heirloom && !grave.claimedBy) {
         ctx.fillStyle = GLINT;
         ctx.fillRect(x + 13 * scale, y, scale, 3 * scale); // a small four-pointed sparkle
@@ -320,6 +354,18 @@ export function createMapView(canvas, world, art, { onPointerTile } = {}) {
       const monsterY = fight.y * size - camY + monsterLunge.y;
       drawShadow(monsterX, monsterY);
       blit(monsterLooks.get(fight.monster.kind), monsterX, monsterY);
+    }
+
+    // The hero's pet trots one step behind (or sits at their feet), and hops when it joins in.
+    const pet = petKind(life.hero.pet);
+    if (pet) {
+      const spot = petPosition(life, heroAt);
+      const small = size * PET_SIZE;
+      const hop = fight?.lastBlow?.by === 'pet' && fight.elapsed + leftover - fight.lastBlow.at < LUNGE_SECONDS ? 2 * scale : 0;
+      const petX = Math.round(spot.x * size - camX + (size - small) / 2 + (spot.beside ? -size * 0.4 : 0));
+      const petY = Math.round(spot.y * size - camY + size - small - hop);
+      const look = petLooks.get(pet.id);
+      ctx.drawImage(look.image, look.sx, look.sy, TILE, TILE, petX, petY, small, small);
     }
 
     const hero = life.hero.class ? classLooks.get(life.hero.class) : heroLook;

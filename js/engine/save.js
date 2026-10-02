@@ -7,19 +7,21 @@
 //   current   the hero in the middle of their life, or null between heroes
 //   world     what heroes have left behind: the fog lifted, the places discovered, graves,
 //             mentors, dream shards, conquered castles, verses of the lullaby, the story's act,
-//             and which dream it is (New Game+; see new-dream.js)
+//             nemeses, and which dream it is (New Game+; see new-dream.js)
 //   pastDreams  the dreams finished before this one, for the Chronicle
+//   collections the Bestiary and the Book of Epithets, kept through every dream (see collections.js)
 //   settings  the player's settings, like Auto-decide
 
 import { places } from '../../data/regions.js';
 import { classes } from '../../data/classes.js';
+import { newCollections, collectionsFromRecords } from './collections.js';
 
 const PREFIX = 'whimsywild-rp5:';
 const SAVE_KEY = `${PREFIX}save`;
 const CODE_PREFIX = 'WWRP5:'; // the start of every save code
 
 // Raise this whenever the save format changes, and add a matching step to `upgrades`.
-export const SAVE_VERSION = 9;
+export const SAVE_VERSION = 11;
 
 // Each step upgrades a save from one version to the next, so old saves keep working.
 const upgrades = {
@@ -47,6 +49,11 @@ const upgrades = {
   // Version 9 adds New Game+: which dream the world is in (the first, before New Game+ existed),
   // and the dreams finished so far (none).
   8: (save) => ({ ...save, pastDreams: [], world: { ...save.world, cycle: save.world.cycle ?? firstDream() } }),
+  // Version 10 adds nemeses: monsters that felled a hero, remembered by name (none yet).
+  9: (save) => ({ ...save, world: { ...save.world, nemeses: [] } }),
+  // Version 11 adds the collections (the Bestiary and the Book of Epithets), filled in from the
+  // Hall of Champions: from each hero's log, while they still have it.
+  10: (save) => ({ ...save, collections: collectionsFromRecords(save.lives) }),
 };
 
 // Mentors for heroes who retired before mentors existed, from their Hall of Champions records.
@@ -71,12 +78,12 @@ function mentorsFromRecords(lives) {
 }
 
 function newSave() {
-  return { version: SAVE_VERSION, lives: [], current: null, world: newWorld(), settings: { autoDecide: false }, pastDreams: [] };
+  return { version: SAVE_VERSION, lives: [], current: null, world: newWorld(), settings: { autoDecide: false }, pastDreams: [], collections: newCollections() };
 }
 
 // A world with nothing discovered yet. `cycle` is the dream it belongs to (see new-dream.js).
 export function newWorld(cycle = firstDream()) {
-  return { revealed: '', discovered: [], graves: [], mentors: [], shards: [], conquered: [], verses: [], actSeen: 1, cycle };
+  return { revealed: '', discovered: [], graves: [], mentors: [], shards: [], conquered: [], verses: [], nemeses: [], actSeen: 1, cycle };
 }
 
 function firstDream() {

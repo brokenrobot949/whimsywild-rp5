@@ -22,18 +22,21 @@ export function addGrave(world, hero) {
     y: spot.y,
     heirloom: heirloom && structuredClone(heirloom),
     claimedBy: null, // the name of the hero who took the heirloom
+    pet: hero.pet ?? null, // the hero's pet, waiting by the grave (see pets.js)
   };
   world.graves.push(grave);
   if (world.graves.length > graveSettings.keep) world.graves.splice(0, world.graves.length - graveSettings.keep);
   return grave;
 }
 
-// The closest grave within reach whose heirloom is still waiting, or null.
-export function graveNear(world, x, y) {
+// The closest grave within reach whose heirloom is still waiting (or, if `wantsPet`, where a pet
+// is waiting), or null.
+export function graveNear(world, x, y, { wantsPet = false } = {}) {
   let best = null;
   let bestDistance = Infinity;
   for (const grave of world.graves) {
-    if (!grave.heirloom || grave.claimedBy) continue;
+    const waiting = (grave.heirloom && !grave.claimedBy) || (wantsPet && grave.pet);
+    if (!waiting) continue;
     const distance = Math.hypot(grave.x - x, grave.y - y);
     if (distance <= graveSettings.respectRange && distance < bestDistance) {
       best = grave;

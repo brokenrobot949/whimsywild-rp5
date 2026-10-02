@@ -50,6 +50,13 @@ export const sounds = {
       { wave: 'triangle', pitch: 'D3', to: 'D2', length: 0.12, volume: 0.25 },
     ],
   },
+  yip: { // the hero's pet joins in
+    gap: 150,
+    layers: [
+      { wave: 'triangle', pitch: 'C6', to: 'G6', length: 0.06, volume: 0.1 },
+      { wave: 'noise', pitch: 3000, to: 1500, length: 0.05, volume: 0.12 },
+    ],
+  },
   whiff: { // a blow misses
     gap: 70,
     layers: [{ wave: 'noise', pitch: 5000, to: 2500, length: 0.12, volume: 0.22, attack: 0.03 }],
@@ -273,6 +280,10 @@ export const soundFor = {
   dungeonCleared: 'triumph',
   bossMove: 'bossMove',
   castleConquered: 'conquest',
+  nemesisMeet: 'bossMove',
+  nemesisAvenged: 'triumph',
+  treasureFound: 'fanfare',
+  petHit: 'yip',
   songVerse: 'verse',
   finale: 'retire',
   verseFound: 'verse',

@@ -16,7 +16,11 @@ import { regions } from '../../data/regions.js';
 import { createRng, drawFromDeck } from './rng.js';
 import { createHero, tryLevelUp, equip, learnSkill, takeClass, refreshStats, raiseToLevel } from './hero.js';
 import { createMonster, monsterWords, blowWait, strike } from './combat.js';
-import { createItem, itemWorth, itemPrice, sellValue, itemWords, rarityOf, scaleItem } from './items.js';
+import { createItem, createTreasure, itemWorth, itemPrice, sellValue, itemWords, rarityOf, scaleItem } from './items.js';
+import { treasureAt, treasureById, carriesTreasure } from './treasures.js';
+import { treasureSettings, treasureLines } from '../../data/treasures.js';
+import { petKind, petTitle, newPet } from './pets.js';
+import { petSettings, petLines, petText } from '../../data/pets.js';
 import { addGrave, graveNear } from './graves.js';
 import { graveLines } from '../../data/graves.js';
 import { eventSettings, eventText } from '../../data/events.js';
@@ -35,6 +39,8 @@ import { castleLines } from '../../data/castles.js';
 import { currentAct, actInfo, lostVerseAt, keepVerse, foundVerseIds, isSealed, regionsOpeningIn } from './story.js';
 import { verses, verseSettings, verseLines } from '../../data/verses.js';
 import { legendGift, moodById } from './new-dream.js';
+import { rememberKiller, nemesisTitle, nemesisIn, nemesisAt, nemesisById, firstVictim, markAvenged } from './nemeses.js';
+import { nemesisSettings, nemesisLines } from '../../data/nemeses.js';
 import { storySettings, tavernLines } from '../../data/story.js';
 import { dungeonSettings, dungeonLines } from '../../data/dungeons.js';
 import { shardSettings, shardLines } from '../../data/shards.js';
@@ -316,6 +322,7 @@ export function lifeRecord(life) {
     retiredTo: ending.town?.name ?? null,
     dungeonsCleared: life.dungeonsDone.length,
     castleConquered: life.conquered ?? null, // the castle this hero conquered, if any
+    pet: petKind(hero.pet) ? petTitle(hero.pet) : null, // like "Biscuit the Lamb"
     cycle: life.world.cycle?.number ?? 1,     // which dream they lived in (New Game+)
     versesFound: life.tally.verses ?? 0,
     skills: { ...hero.skills },
@@ -528,6 +535,7 @@ function retire(life) {
   const text = fill(life.rng.pick(retireLines), { town: town.logName });
   addLog(life, 'end', text);
   addMentor(life.world, life.hero, town.name);
+  if (petKind(life.hero.pet)) addLog(life, 'pet', fill(petLines.retired, { pet: petTitle(life.hero.pet) }));
   life.ending = { kind: 'retired', text: capitalize(text), town };
   emit('life-end', { life });
 }
@@ -615,6 +623,9 @@ function arrive(life) {
     if (place.kind === 'castle') addLog(life, 'arrive', fill(drawLine(life, 'already-conquered', castleLines.alreadyConquered), { place: place.logName }));
     // A castle can still hold its verse if it fell before the lullaby was known.
     if (place.kind === 'castle') maybeFindVerse(life, place);
+    // A nemesis waiting in its lair.
+    const lairOf = nemesisAt(life.world, place.name);
+    if (lairOf) meetNemesis(life, lairOf, 'nemesis-lair', nemesisLines.lair, place);
     maybeFindShard(life, place);
     moveOn(life, place);
   }
@@ -738,6 +749,23 @@ function enterRoom(life, room) {
   }
 }
 
+// A treasure (see treasures.js): always worn straight away, counted for the Chronicle, epithets
+// and deeds. `how` is 'castle', 'dungeon' or 'event'. A hero already wearing it finds nothing.
+function findTreasure(life, treasure, how, place = null) {
+  const { hero } = life;
+  if (!treasure || carriesTreasure(hero, treasure.id)) return;
+  const item = createTreasure(treasure, hero.level);
+  life.tally.treasures[treasure.id] = (life.tally.treasures[treasure.id] ?? 0) + 1;
+  noteDeed(life, item.level * rarityOf(item).strength, fill(deedLines.found, itemWords(item)));
+  const replaced = equip(hero, item);
+  if (replaced) hero.gold += sellValue(replaced);
+  const line = fill(drawLine(life, `treasure-${how}`, treasureLines[how]), { ...itemWords(item), place: place?.logName ?? '' });
+  addLog(life, 'treasure', line, rarityOf(item).color);
+  emit('equip', { hero, item });
+  emit('treasure', { life, item });
+  updateEpithet(life);
+}
+
 // An item found in a dungeon: counted for epithets and deeds, and worn if it's better.
 function findItem(life, item, deckName, lines) {
   life.tally.found[item.rarity] = (life.tally.found[item.rarity] ?? 0) + 1;
@@ -783,6 +811,7 @@ function finishSong(life) {
   const { hero, world } = life;
   const { monster } = life.fight;
   singVerses(life, verses.length);
+  life.tally.slain[monster.kind.name] = (life.tally.slain[monster.kind.name] ?? 0) + 1;
   life.fight = null;
   life.dungeon = null;
   addLog(life, 'finale', finaleLines.slept);
@@ -816,6 +845,7 @@ function leaveDungeon(life, cleared) {
     noteDeed(life, deed, fill(deedLines.conquered, { place: place.logName }));
     addLog(life, 'conquest', fill(drawLine(life, 'conquered', castleLines.conquered), { place: place.logName }));
     emit('castle-conquered', { life, place });
+    findTreasure(life, treasureAt(place), 'castle', place); // the lord's treasure
     noteNewAct(life, actBefore);
     maybeFindVerse(life, place);
     updateEpithet(life);
@@ -824,6 +854,8 @@ function leaveDungeon(life, cleared) {
     life.tally.dungeons += 1;
     noteDeed(life, deed, fill(deedLines.cleared, { place: place.logName }));
     addLog(life, 'arrive', fill(drawLine(life, 'cleared', dungeonLines.cleared), { place: place.logName }));
+    const hidden = treasureAt(place); // some dungeons sometimes hide a treasure
+    if (hidden && life.rng.chance(treasureSettings.dungeonChance)) findTreasure(life, hidden, 'dungeon', place);
     maybeFindVerse(life, place);
     updateEpithet(life);
   } else {
@@ -930,22 +962,31 @@ function lookAround(life, radius = worldSettings.fogRadius) {
 }
 
 // Passing close to a grave whose heirloom still waits, the hero pays respects and takes it,
-// remade for their own level. They wear it if it's better, or sell it if not.
+// remade for their own level. They wear it if it's better, or sell it if not. A pet waiting by
+// the grave comes along too, if the hero has none of their own.
 function visitGrave(life) {
   const { hero, world } = life;
-  const grave = graveNear(world, hero.x, hero.y);
+  const wantsPet = !petKind(hero.pet);
+  const grave = graveNear(world, hero.x, hero.y, { wantsPet });
   if (!grave) return;
-  grave.claimedBy = hero.name;
   life.tally.respects += 1;
   const fallen = `${grave.name.split(' ')[0]} ${grave.epithet}`;
   addLog(life, 'grave', fill(drawLine(life, 'respects', graveLines.respects), { fallen }));
-  const item = scaleItem(grave.heirloom, hero.level);
-  const current = hero.gear[item.slot];
-  if (!current || itemWorth(item) > itemWorth(current)) {
-    takeItem(life, item, drawLine(life, 'heirloom-kept', graveLines.kept), {});
-  } else {
-    hero.gold += sellValue(item);
-    addLog(life, 'loot', fill(drawLine(life, 'heirloom-sold', graveLines.sold), itemWords(item)), rarityOf(item).color);
+  if (grave.heirloom && !grave.claimedBy) {
+    grave.claimedBy = hero.name;
+    const item = scaleItem(grave.heirloom, hero.level);
+    const current = hero.gear[item.slot];
+    if (!current || itemWorth(item) > itemWorth(current)) {
+      takeItem(life, item, drawLine(life, 'heirloom-kept', graveLines.kept), {});
+    } else {
+      hero.gold += sellValue(item);
+      addLog(life, 'loot', fill(drawLine(life, 'heirloom-sold', graveLines.sold), itemWords(item)), rarityOf(item).color);
+    }
+  }
+  if (wantsPet && grave.pet) {
+    const pet = grave.pet;
+    grave.pet = null;
+    if (petKind(pet)) adoptPet(life, pet, drawLine(life, 'pet-from-grave', petLines.fromGrave), { fallen: grave.name.split(' ')[0] });
   }
   emit('respects', { life, grave });
   updateEpithet(life);
@@ -1112,6 +1153,8 @@ function resolveEvent(life, event, option) {
     if (deedRarities.includes(item.rarity)) noteDeed(life, item.level * rarityOf(item).strength, fill(deedLines.found, itemWords(item)));
     takeItem(life, item, drawLine(life, 'event-item', eventText.newItem), {});
   }
+  if (outcome.treasure) findTreasure(life, treasureById(outcome.treasure), 'event');
+  if (outcome.pet && !petKind(hero.pet)) adoptPet(life, newPet(life.rng, outcome.pet), drawLine(life, 'pet-adopted', petLines.adopted));
   if (outcome.rest) life.restLeft += outcome.rest * lifeClock.secondsPerSeason;
   if (outcome.hp) {
     hero.hp = Math.min(hero.stats.maxHp, hero.hp + hero.stats.maxHp * outcome.hp);
@@ -1137,6 +1180,7 @@ function dieFromEvent(life, event) {
   const text = fill(eventText.died, { event: event.title.charAt(0).toLowerCase() + event.title.slice(1) });
   addLog(life, 'end', text);
   const grave = addGrave(life.world, life.hero);
+  petWaits(life);
   life.ending = { kind: 'died', text: capitalize(text), cause: event.title, grave };
   emit('death', { life });
   emit('life-end', { life });
@@ -1149,11 +1193,69 @@ function maybeStartFight(life, stepSeconds) {
   if (life.sinceFight < encounters.minGapSeconds) return false;
   if (!life.rng.chance(encounters.chancePerSecond * dreamOf(life).fightRate * stepSeconds)) return false;
   const { hero } = life;
+  const region = regionAt(life.world, hero.x, hero.y) ?? life.regionId;
+  // The region's nemesis roams, looking for heroes it thinks it can beat.
+  const nemesis = nemesisIn(life.world, region);
+  if (nemesis && hero.level >= nemesis.level - nemesisSettings.showBelow && life.rng.chance(nemesisSettings.roamChance)) {
+    meetNemesis(life, nemesis, 'nemesis-meet', nemesisLines.meet);
+    return true;
+  }
   // Monsters come from the region the hero is walking through (and tonight's dream).
-  const monster = createMonster(life.rng, regionAt(life.world, hero.x, hero.y) ?? life.regionId, hero.level, monsterOptions(life));
+  const monster = createMonster(life.rng, region, hero.level, monsterOptions(life));
   addLog(life, 'fight', fill(drawLine(life, `meet-${monster.kind.name}`, monster.kind.meetLines), monsterWords(monster)));
   startFight(life, monster);
   return true;
+}
+
+// ---- Nemeses (see nemeses.js) ----
+
+// A fight with a nemesis: its monster, at its own level and a little tougher, under its name.
+function meetNemesis(life, nemesis, deckName, lines, place = null) {
+  const { hero } = life;
+  const options = monsterOptions(life);
+  const monster = createMonster(life.rng, nemesis.region, hero.level, {
+    ...options,
+    kindName: nemesis.kind,
+    level: Math.max(nemesis.level, hero.level + nemesisSettings.aboveHero), // it rises to meet its challenger
+    strength: options.strength + nemesisSettings.strength,
+  });
+  monster.name = nemesisTitle(nemesis);
+  monster.properName = true;
+  monster.nemesis = nemesis.id;
+  addLog(life, 'nemesis', fill(drawLine(life, deckName, lines), { nemesis: monster.name, victim: firstVictim(nemesis), place: place?.logName ?? '' }));
+  emit('nemesis-meet', { life, nemesis });
+  startFight(life, monster);
+}
+
+// The hero defeats a nemesis and avenges everyone it felled, taking back the first one's
+// heirloom from their grave (or, if it's gone, gold from the lair).
+function avengeNemesis(life, monster) {
+  const { hero, world } = life;
+  const nemesis = nemesisById(world, monster.nemesis);
+  if (!nemesis || nemesis.avengedBy) return;
+  const words = { nemesis: monster.name, victim: firstVictim(nemesis) };
+  addLog(life, 'nemesis', fill(drawLine(life, 'avenged', nemesisLines.avenged), words));
+  markAvenged(world, nemesis, hero);
+  life.tally.avenged += 1;
+  noteDeed(life, nemesis.level * nemesisSettings.deedPerLevel, fill(deedLines.avenged, words));
+  const grave = world.graves.find((other) => other.name === nemesis.victims[0] && other.heirloom && !other.claimedBy);
+  if (grave) {
+    grave.claimedBy = hero.name;
+    const item = scaleItem(grave.heirloom, hero.level);
+    const current = hero.gear[item.slot];
+    if (!current || itemWorth(item) > itemWorth(current)) {
+      takeItem(life, item, nemesisLines.heirloom, words);
+    } else {
+      hero.gold += sellValue(item);
+      addLog(life, 'loot', fill(nemesisLines.heirloom, { ...itemWords(item), ...words }), rarityOf(item).color);
+    }
+  } else {
+    const gold = Math.round(loot.goldPerMonsterLevel * nemesis.level * nemesisSettings.rewardGold);
+    hero.gold += gold;
+    hero.goldFound += gold;
+    addLog(life, 'loot', fill(nemesisLines.noHeirloom, { ...words, gold }));
+  }
+  emit('nemesis-avenged', { life, nemesis });
 }
 
 // The monster stands on the next tile along the way (or, in a dungeon, beside the hero).
@@ -1171,9 +1273,12 @@ function startFight(life, monster) {
     cooldowns: new Map(activeSkills(hero).map(({ skill, rank }) => [skill.name, rank.cooldown * (1 - skillPicks.startCharge)])),
     // Seconds until a boss's special move is ready (the first comes about halfway through).
     specialWait: monster.kind.special ? monster.kind.special.every / 2 : null,
+    // Seconds until the hero's pet joins in, if they have one.
+    petWait: petKind(hero.pet) ? petKind(hero.pet).help.every * petSettings.firstHelp : null,
     versesSung: 0,       // verses of the lullaby sung so far, in the finale's song
     lastBlow: null,
   };
+  life.tally.met[monster.kind.name] = (life.tally.met[monster.kind.name] ?? 0) + 1;
   emit('fight-start', { life, monster });
 }
 
@@ -1184,9 +1289,13 @@ function fight(life, seconds) {
   current.monsterWait -= seconds;
   for (const [name, wait] of current.cooldowns) current.cooldowns.set(name, wait - seconds);
   if (current.specialWait !== null && current.specialWait !== undefined) current.specialWait -= seconds;
-  // Blows land in order of whose wait ran out first.
-  while (life.fight && !life.ending && (current.heroWait <= 0 || current.monsterWait <= 0)) {
-    if (current.heroWait <= current.monsterWait) {
+  if (current.petWait !== null && current.petWait !== undefined) current.petWait -= seconds;
+  // Blows land in order of whose wait ran out first (the hero's pet, if any, joins in too).
+  const petWait = () => current.petWait ?? Infinity;
+  while (life.fight && !life.ending && (current.heroWait <= 0 || current.monsterWait <= 0 || petWait() <= 0)) {
+    if (petWait() <= current.heroWait && petWait() <= current.monsterWait) {
+      petTurn(life);
+    } else if (current.heroWait <= current.monsterWait) {
       current.heroWait += blowWait(life.hero.stats.speed);
       heroTurn(life);
     } else {
@@ -1286,6 +1395,36 @@ function heroStrike(life, multiplier) {
   return result;
 }
 
+// The hero's pet joins in: a small blow, some share of the hero's own (see pets.js).
+function petTurn(life) {
+  const { hero } = life;
+  const current = life.fight;
+  const { monster } = current;
+  const kind = petKind(hero.pet);
+  if (!kind) {
+    current.petWait = null;
+    return;
+  }
+  current.petWait += kind.help.every;
+  const result = strike(life.rng, hero.stats, monster.stats, { multiplier: kind.help.strike });
+  monster.hp = Math.max(0, monster.hp - result.damage);
+  current.lastBlow = { by: 'pet', at: current.elapsed, ...result };
+  emit('pet-hit', { life, pet: hero.pet, ...result });
+  if (monster.hp <= 0) winFight(life);
+  else if (monster.kind.song) singVerses(life);
+}
+
+// A pet joins the hero, for the rest of their life. `line` is logged, with {pet} filled in.
+function adoptPet(life, pet, line, values = {}) {
+  const { hero } = life;
+  hero.pet = pet;
+  refreshStats(hero);
+  life.tally.pets += 1;
+  addLog(life, 'pet', fill(line, { pet: petTitle(pet), name: pet.name, ...values }));
+  emit('pet', { life, pet });
+  updateEpithet(life);
+}
+
 // `multiplier` scales the damage, for a boss's special move.
 function monsterStrike(life, multiplier = 1) {
   const { hero } = life;
@@ -1326,6 +1465,7 @@ function winFight(life) {
     if (deedRarities.includes(item.rarity)) noteDeed(life, item.level * rarityOf(item).strength, fill(deedLines.found, itemWords(item)));
     takeItem(life, item, drawLine(life, 'found', lootLines.found), {});
   }
+  if (monster.nemesis) avengeNemesis(life, monster);
   if (hero.potions < potionLimit(hero) && life.rng.chance(loot.potionDropChance + (effects.potionFind ?? 0))) hero.potions += 1;
   emit('fight-end', { life, monster, won: true });
   gainXp(life, Math.round(experience.perMonsterLevel * monster.level * (monster.kind.xp ?? 1) * (1 + (effects.xp ?? 0))));
@@ -1354,10 +1494,19 @@ function die(life) {
   const text = fill(drawLine(life, `death-${monster.kind.name}`, monster.kind.deathLines), monsterWords(monster));
   addLog(life, 'end', text);
   const grave = addGrave(life.world, life.hero);
+  // The killer may become a nemesis, or, if it already is one, grow bolder.
+  const remembered = rememberKiller(life.world, life.rng, monster, life.hero, regionAt(life.world, life.hero.x, life.hero.y));
+  if (remembered) addLog(life, 'nemesis', fill(remembered.born ? nemesisLines.born : nemesisLines.grew, { nemesis: nemesisTitle(remembered.nemesis) }));
+  petWaits(life);
   life.ending = { kind: 'died', text: capitalize(text), monster, grave };
   emit('fight-end', { life, monster, won: false });
   emit('death', { life });
   emit('life-end', { life });
+}
+
+// A fallen hero's pet stays by their grave (addGrave keeps it there) for the next hero to find.
+function petWaits(life) {
+  if (petKind(life.hero.pet)) addLog(life, 'pet', fill(petLines.waits, { name: life.hero.pet.name }));
 }
 
 // The most potions the hero will carry (a Pack Rat carries more).

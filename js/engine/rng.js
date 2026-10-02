@@ -31,7 +31,7 @@ export function createRng(seed) {
         roll -= weightOf(item);
         if (roll < 0) return item;
       }
-      return list[list.length - 1];
+      return list.findLast((item) => weightOf(item) > 0) ?? list[list.length - 1]; // (never one that can't be picked)
     },
     chance: (probability) => next() < probability,
     get state() { return state; },

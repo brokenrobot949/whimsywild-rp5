@@ -6,6 +6,10 @@ import { visitKind } from './dungeons.js';
 import { isFinaleEntrance, dreamRegion } from './finale.js';
 import { finaleText } from '../../data/finale.js';
 import { moods, newDreamText } from '../../data/new-dream.js';
+import { nemesisAt } from './nemeses.js';
+import { nemesisText } from '../../data/nemeses.js';
+import { petKind } from './pets.js';
+import { petText } from '../../data/pets.js';
 import { xpToNextLevel } from './hero.js';
 import { tagInfo, skillChip, classById, skillRank, describeEffects, quirkById } from './skills.js';
 import { placeSkulls, directionTo, distanceWord } from './rumors.js';
@@ -158,12 +162,15 @@ export function createUi(art) {
         const line = document.createElement('span');
         line.className = `option-${key}`;
         line.textContent = text;
-        // A badge that stands out at the end of the detail line, like "Unexplored" on a rumor.
-        if (key === 'detail' && option.badge) {
-          const badge = document.createElement('span');
-          badge.className = 'option-badge';
-          badge.textContent = option.badge;
-          line.append(' ', badge);
+        // Badges that stand out at the end of the detail line, like "Unexplored" on a rumor.
+        // Each is { text, kind }, and its kind picks its color (see .option-badge in style.css).
+        if (key === 'detail') {
+          for (const { text: label, kind } of option.badges ?? []) {
+            const badge = document.createElement('span');
+            badge.className = `option-badge ${kind}`;
+            badge.textContent = label;
+            line.append(' ', badge);
+          }
         }
         button.append(line);
       }
@@ -246,6 +253,10 @@ export function createUi(art) {
     showMonsterHp(current.fight.monster);
   });
   on('song-verse', ({ verse }) => { encounter.note.textContent = fill(finaleText.songNote, { title: verse.title }); });
+  on('pet-hit', ({ life: current, pet, dodged, damage }) => {
+    encounter.note.textContent = fill(dodged ? petText.missed : petText.hit, { name: pet.name, verb: petKind(pet)?.verb ?? '', damage });
+    if (current.fight) showMonsterHp(current.fight.monster);
+  });
   for (const name of ['dungeon-enter', 'dungeon-room', 'dungeon-leave', 'life-end']) on(name, showDungeon);
 
   // The dungeon (or castle) panel: one pip per room, the current one lit, and what's in it.
@@ -501,7 +512,10 @@ export function createUi(art) {
             title: text,
             note: danger.skull.repeat(placeSkulls(hero.level, place, world)),
             detail: where,
-            badge: world.discovered.has(place.name) ? null : rumorText.unexplored, // new ground stands out
+            badges: [ // new ground, and a nemesis's lair, stand out
+              !world.discovered.has(place.name) && { text: rumorText.unexplored, kind: 'unexplored' },
+              nemesisAt(world, place.name) && { text: nemesisText.rumorNote, kind: 'nemesis' },
+            ].filter(Boolean),
           };
         });
       } else if (choice.kind === 'retreat') {

@@ -439,6 +439,9 @@ body[data-card="open"]:not([data-tab="adventure"]) #tabs [data-tab="adventure"]:
 .log-shard { color: #5b4bc4; font-weight: bold; }
 .log-conquest { color: #a4471a; font-weight: bold; }
 .log-verse { color: #8a5a9e; font-weight: bold; }
+.log-nemesis { color: #a02a22; font-weight: bold; }
+.nemesis-active b { color: #a02a22; }
+.nemesis-avenged b { text-decoration: line-through; color: var(--ink-soft); }
 .log-finale { color: #8a5a9e; font-weight: bold; font-style: italic; }
 .log-story { color: #8a5a9e; font-style: italic; }
 .log-tavern { color: #6b5a4a; font-style: italic; }
@@ -567,6 +570,7 @@ body[data-card="open"]:not([data-tab="adventure"]) #tabs [data-tab="adventure"]:
   background: #2f6f8a;
   border-radius: 8px;
 }
+.option-badge.nemesis { background: var(--accent); } /* a nemesis's lair, in red */
 
 .tag-chip {
   display: inline-block;
@@ -759,3 +763,44 @@ body[data-card="open"]:not([data-tab="adventure"]) #tabs [data-tab="adventure"]:
   border-radius: 6px;
   cursor: pointer;
 }
+
+/* Collections in the Chronicle: the Bestiary and the Book of Epithets, tap to open. */
+.collection {
+  margin: 0 0 8px;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.45);
+  border: 1px solid rgba(46, 36, 51, 0.2);
+  border-radius: 8px;
+}
+.collection summary { font-weight: bold; cursor: pointer; }
+.collection[open] summary { margin-bottom: 4px; }
+.collection > p { margin: 0 0 6px; }
+.bestiary-region { margin: 10px 0 4px; font-size: 0.95rem; }
+.bestiary {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.bestiary li {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 6px;
+  font-size: 0.85rem;
+  line-height: 1.3;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 6px;
+}
+.bestiary li .muted { font-size: 0.78rem; }
+.bestiary .portrait { width: 32px; height: 32px; }
+.bestiary li.unseen { align-items: center; background: rgba(46, 36, 51, 0.06); }
+.bestiary li.unseen b { color: var(--ink-soft); }
+.epithet-book li.unearned b { color: var(--ink-soft); }
+.epithet-hint { margin-top: 2px; font-size: 0.88rem; font-style: italic; color: #2f6f8a; }
+.log-treasure { font-weight: bold; }
+.log-pet { color: #7a5230; font-style: italic; }
+.pet-card { margin-bottom: 4px; }
+.pet-card .portrait { width: 40px; height: 40px; }

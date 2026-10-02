@@ -17,6 +17,15 @@ import { currentAct, actInfo, verseById, isSealed } from './story.js';
 import { storyText, storySettings, acts, actChronicle } from '../../data/story.js';
 import { isFinaleOpen } from './finale.js';
 import { ordinal } from './new-dream.js';
+import { nemesisTitle, victimList } from './nemeses.js';
+import { nemesisText } from '../../data/nemeses.js';
+import { collectionsWithLife, bookOfEpithets, epithetHint } from './collections.js';
+import { collectionText, familyNames } from '../../data/collections.js';
+import { monsters } from '../../data/monsters.js';
+import { treasures, treasureText } from '../../data/treasures.js';
+import { treasureHint, treasureById } from './treasures.js';
+import { petKind, petTitle } from './pets.js';
+import { petText } from '../../data/pets.js';
 import { newDreamText } from '../../data/new-dream.js';
 import { verses, verseText, verseSettings } from '../../data/verses.js';
 import { regions } from '../../data/regions.js';
@@ -25,7 +34,7 @@ import { revealedShare } from './fog.js';
 import { logLine } from './ui.js';
 import { picture, TILE } from './art.js';
 import { fill, capitalize } from './text.js';
-import { slots, statNames } from '../../data/items.js';
+import { slots, statNames, rarities } from '../../data/items.js';
 import { tags, skillPicks } from '../../data/skills.js';
 import { classes, evolutions } from '../../data/classes.js';
 import { heroSprite } from '../../data/art.js';
@@ -33,13 +42,17 @@ import { heroTabText, hallText, chronicleText } from '../../data/records.js';
 
 const ROMAN = ['', 'I', 'II', 'III', 'IV', 'V'];
 const STAT_ORDER = ['power', 'defense', 'speed', 'luck'];
+const SHADOW = '#4a4152'; // a monster no hero has met, in the Bestiary
+const TREASURE_COLOR = rarities.find((rarity) => rarity.id === 'treasure').color;
+const slotName = (id) => slots.find((slot) => slot.id === id)?.name ?? id;
 
 // Events that change what the Hero tab shows.
-const HERO_EVENTS = ['season', 'arrive', 'fight-end', 'level-up', 'equip', 'choice-made', 'potion', 'shop', 'epithet'];
+const HERO_EVENTS = ['season', 'arrive', 'fight-end', 'level-up', 'equip', 'choice-made', 'potion', 'shop', 'epithet', 'pet'];
 
+// getCollections() gives the Bestiary and the Book of Epithets (see collections.js).
 // New Game+: getPastDreams() lists the finished dreams, getPendingDream() says if a new one is
 // waiting for the current hero to finish, and onNewDream() offers the player a new dream.
-export function createScreens({ art, world, getLife, getLives, getPastDreams, getPendingDream, onNewDream }) {
+export function createScreens({ art, world, getLife, getLives, getPastDreams, getPendingDream, onNewDream, getCollections }) {
   const panels = {
     adventure: document.getElementById('panel-adventure'),
     hero: document.getElementById('panel-hero'),
@@ -49,6 +62,7 @@ export function createScreens({ art, world, getLife, getLives, getPastDreams, ge
   const buttons = [...document.querySelectorAll('#tabs [data-tab]')];
   let active = 'adventure';
   let openLog = null; // the Hall entry whose log is open, if any
+  const openCollections = new Set(); // the Chronicle's collections that are open
 
   function show(name) {
     active = name;
@@ -133,6 +147,21 @@ export function createScreens({ art, world, getLife, getLives, getPastDreams, ge
         list.append(item);
       }
       panel.append(list);
+    }
+
+    // The hero's pet, if they have one
+    const pet = petKind(hero.pet);
+    if (pet) {
+      panel.append(element('h3', '', petText.heroTab));
+      const row = element('div', 'hero-card pet-card');
+      const about = element('div');
+      about.append(
+        element('b', '', petTitle(hero.pet)),
+        element('div', '', `${describeEffects(pet.effects)}. ${fill(petText.helps, { every: pet.help.every })}`),
+        element('div', 'flavor', pet.flavor),
+      );
+      row.append(portrait(pet.sprite), about);
+      panel.append(row);
     }
 
     // Tonight's dream
@@ -224,6 +253,10 @@ export function createScreens({ art, world, getLife, getLives, getPastDreams, ge
         const name = element('b', '', item.name);
         name.style.color = rarityOf(item).color;
         row.append(name, element('div', 'muted', `${rarityOf(item).name}, level ${item.level}. ${capitalize(itemStatsText(item))}`));
+        // A treasure's something special, and a word about it.
+        if (item.effects && Object.keys(item.effects).length > 0) row.append(element('div', '', describeEffects(item.effects)));
+        const treasure = item.treasure && treasureById(item.treasure);
+        if (treasure) row.append(element('div', 'flavor', treasure.flavor));
       } else {
         row.append(element('span', 'muted', slot.empty));
       }
@@ -233,14 +266,20 @@ export function createScreens({ art, world, getLife, getLives, getPastDreams, ge
     panel.scrollTop = scroll;
   }
 
-  // A hero or class picture, drawn crisp at a larger size.
-  function portrait(sprite) {
+  // A hero, class or monster picture, drawn crisp at a larger size. A shadow is just its outline.
+  function portrait(sprite, shadow = false) {
     const canvas = document.createElement('canvas');
     canvas.width = TILE;
     canvas.height = TILE;
     canvas.className = 'portrait';
     const look = picture(art, sprite.sheet, sprite.tile, 'A portrait');
-    canvas.getContext('2d').drawImage(look.image, look.sx, look.sy, TILE, TILE, 0, 0, TILE, TILE);
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(look.image, look.sx, look.sy, TILE, TILE, 0, 0, TILE, TILE);
+    if (shadow) {
+      ctx.globalCompositeOperation = 'source-in';
+      ctx.fillStyle = SHADOW;
+      ctx.fillRect(0, 0, TILE, TILE);
+    }
     return canvas;
   }
 
@@ -345,6 +384,10 @@ export function createScreens({ art, world, getLife, getLives, getPastDreams, ge
     worldRows.push([chronicleText.shardsFound, fill(chronicleText.townsValue, { found: world.shards.length, total: shards.length })]);
     panel.append(element('h3', '', chronicleText.worldHeading), statList(worldRows));
 
+    // The Bestiary and the Book of Epithets, counting the hero in progress too.
+    const collections = collectionsWithLife(getCollections(), getLife());
+    panel.append(element('h3', '', collectionText.heading), bestiary(collections), epithetBook(collections, act), treasureList(collections));
+
     panel.append(element('h3', '', chronicleText.heroesHeading));
     // (The heroes' numbers wait for the first finished life; the rest shows straight away.)
     if (lives.length === 0) panel.append(element('p', 'muted', chronicleText.empty));
@@ -438,6 +481,24 @@ export function createScreens({ art, world, getLife, getLives, getPastDreams, ge
       panel.append(song);
     }
 
+    // Nemeses: the ones still out there first, then those avenged (once there's been one).
+    if (world.nemeses.length > 0) {
+      panel.append(element('h3', '', nemesisText.chronicleHeading));
+      const list = element('ul', 'plain-list');
+      const order = [...world.nemeses.filter((nemesis) => !nemesis.avengedBy), ...world.nemeses.filter((nemesis) => nemesis.avengedBy).reverse()];
+      for (const nemesis of order) {
+        const lair = world.places.find((place) => place.name === nemesis.lair);
+        const words = { victims: victimList(nemesis), place: lair?.logName ?? nemesis.lair, hero: nemesis.avengedBy };
+        const item = element('li', nemesis.avengedBy ? 'nemesis-avenged' : 'nemesis-active');
+        item.append(
+          element('b', '', nemesisTitle(nemesis)),
+          element('div', 'muted', fill(nemesis.avengedBy ? nemesisText.avenged : nemesisText.felled, words)),
+        );
+        list.append(item);
+      }
+      panel.append(list);
+    }
+
     // Dream shards, in the order they were found.
     panel.append(element('h3', '', fill(shardText.heading, { found: world.shards.length, total: shards.length })));
     if (world.shards.length === 0) {
@@ -457,6 +518,107 @@ export function createScreens({ art, world, getLife, getLives, getPastDreams, ge
       lore.append(item);
     }
     panel.append(lore);
+  }
+
+  // ---- Collections ----
+
+  // A collection that opens and closes with a tap, and stays that way when the Chronicle redraws.
+  function collectionBox(id, title, about, content) {
+    const box = document.createElement('details');
+    box.className = 'collection';
+    box.open = openCollections.has(id);
+    box.ontoggle = () => {
+      if (box.open) openCollections.add(id);
+      else openCollections.delete(id);
+    };
+    const summary = document.createElement('summary');
+    summary.textContent = title;
+    box.append(summary, element('p', 'muted', about), content);
+    return box;
+  }
+
+  // Every monster, region by region. Ones no hero has met are shadows; a region still under the
+  // mist keeps its name secret until one of its monsters is met.
+  function bestiary(collections) {
+    const seen = (kind) => {
+      const entry = collections.monsters[kind.name];
+      return Boolean(entry && (entry.met > 0 || entry.slain > 0 || entry.felled > 0));
+    };
+    const beaten = monsters.filter((kind) => collections.monsters[kind.name]?.slain > 0).length;
+    const content = element('div');
+    for (const [regionId, region] of Object.entries(regions)) {
+      const group = monsters.filter((kind) => kind.region === regionId);
+      if (group.length === 0) continue;
+      const known = !isSealed(world, regionId) || group.some(seen);
+      content.append(element('h4', 'bestiary-region', known ? region.name : collectionText.unknownRegion));
+      const list = element('ul', 'bestiary');
+      for (const kind of group) list.append(bestiaryEntry(kind, collections.monsters[kind.name], seen(kind)));
+      content.append(list);
+    }
+    return collectionBox('bestiary', fill(collectionText.bestiary, { found: beaten, total: monsters.length }), collectionText.bestiaryAbout, content);
+  }
+
+  function bestiaryEntry(kind, entry, seen) {
+    const item = element('li', seen ? '' : 'unseen');
+    const text = element('div');
+    item.append(portrait(kind.sprite, !seen), text);
+    if (!seen) {
+      text.append(element('b', '', collectionText.unknownName));
+      return item;
+    }
+    const label = [familyNames[kind.family], kind.song ? collectionText.song : kind.boss ? collectionText.boss : null];
+    text.append(element('b', '', kind.name), element('div', 'muted', label.filter(Boolean).join(' · ')));
+    const counts = [entry.slain > 0 ? counted(collectionText.beaten, entry.slain) : collectionText.metOnly];
+    if (entry.felled > 0) counts.push(counted(collectionText.felled, entry.felled));
+    text.append(element('div', '', counts.join(' · ')));
+    if (entry.firstBy) text.append(element('div', 'muted', fill(collectionText.firstBeaten, { hero: entry.firstBy.split(' ')[0] })));
+    return item;
+  }
+
+  // Every epithet, humblest first. Ones no hero has earned show only how to earn them.
+  function epithetBook(collections, act) {
+    const book = bookOfEpithets();
+    const earned = book.filter((entry) => collections.epithets[entry.epithet]).length;
+    const list = element('ul', 'plain-list epithet-book');
+    for (const entry of book) {
+      const record = collections.epithets[entry.epithet];
+      const item = element('li', record ? '' : 'unearned');
+      item.append(
+        element('b', '', record ? capitalize(entry.epithet) : collectionText.unknownName),
+        element('div', record ? 'muted' : 'epithet-hint', epithetHint(entry, { world, collections, act })),
+      );
+      if (record) {
+        const first = collectionText.firstEarned[record.count > 1 ? 1 : 0];
+        item.append(element('div', 'muted', fill(first, { hero: record.firstBy, more: record.count - 1 })));
+      }
+      list.append(item);
+    }
+    return collectionBox('epithets', fill(collectionText.epithets, { found: earned, total: book.length }), collectionText.epithetsAbout, list);
+  }
+
+  // Every treasure. Ones no hero has found show only where to look.
+  function treasureList(collections) {
+    const found = treasures.filter((treasure) => collections.treasures?.[treasure.id]).length;
+    const list = element('ul', 'plain-list treasure-list');
+    for (const treasure of treasures) {
+      const record = collections.treasures?.[treasure.id];
+      const item = element('li', record ? '' : 'unearned');
+      if (!record) {
+        item.append(element('b', '', collectionText.unknownName), element('div', 'epithet-hint', treasureHint(treasure, world)));
+      } else {
+        const name = element('b', '', treasure.name);
+        name.style.color = TREASURE_COLOR;
+        const first = treasureText.firstFound[record.count > 1 ? 1 : 0];
+        item.append(
+          name,
+          element('div', 'muted', `${slotName(treasure.slot)} · ${describeEffects(treasure.effects)}`),
+          element('div', 'flavor', treasure.flavor),
+          element('div', 'muted', fill(first, { hero: record.firstBy, count: record.count })),
+        );
+      }
+      list.append(item);
+    }
+    return collectionBox('treasures', fill(treasureText.heading, { found, total: treasures.length }), treasureText.about, list);
   }
 
   // ---- Hall of Champions ----
@@ -493,6 +655,7 @@ export function createScreens({ art, world, getLife, getLives, getPastDreams, ge
       const background = [record.origin, record.quirk, record.dream].filter(Boolean).join(' · ');
       if (background) text.append(element('div', 'muted', background));
       if (record.deed) text.append(element('div', '', fill(hallText.deed, { deed: record.deed }))); // older saves have none
+      if (record.pet) text.append(element('div', 'muted', fill(petText.hall, { pet: record.pet })));
       text.append(element('div', 'flavor', record.endingText));
       if (manyDreams) text.append(element('div', 'dream-tag', fill(newDreamText.hallTag, { ordinal: ordinal(record.cycle ?? 1) })));
       card.append(text);
@@ -529,6 +692,11 @@ export function createScreens({ art, world, getLife, getLives, getPastDreams, ge
 
   show('adventure');
   return { show, refresh: render };
+}
+
+// "Beaten once" or "Beaten 12 times", from a pair of lines for one and for more.
+function counted(pair, count) {
+  return fill(pair[count === 1 ? 0 : 1], { count: count.toLocaleString() });
 }
 
 function element(tag, className = '', text) {

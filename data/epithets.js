@@ -20,6 +20,9 @@
 //              dungeons: 2                        clear that many dungeons
 //              castles: 1                         conquer that many monster castles
 //              verses: 1                          find that many verses of the lullaby
+//              avenged: 1                         defeat that many nemeses
+//              treasures: 1                       find that many different treasures (see treasures.js)
+//              pets: 1                            adopt that many pets (see pets.js)
 
 // The epithet every hero starts with.
 export const defaultEpithet = 'the Hopeful';
@@ -36,6 +39,9 @@ export const epithets = [
   { epithet: 'the Delver', rank: 3, when: { dungeons: 2 } },
   { epithet: 'the Castle-Breaker', rank: 7, when: { castles: 1 } },
   { epithet: 'the Songfinder', rank: 6, when: { verses: 1 } },
+  { epithet: 'the Avenger', rank: 6, when: { avenged: 1 } },
+  { epithet: 'the Treasure-Keeper', rank: 6, when: { treasures: 1 } },
+  { epithet: 'the Doting', rank: 2, when: { pets: 1 } },
   { epithet: 'Badgerbane', rank: 2, when: { slain: 'Grumpy Badger', count: 8 } },
   { epithet: 'the Slime-Mopper', rank: 2, when: { slain: 'Slime Puddle', count: 8 } },
   { epithet: 'the Bee-Botherer', rank: 2, when: { slain: 'Dozy Bumblebee', count: 6 } },

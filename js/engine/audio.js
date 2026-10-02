@@ -226,6 +226,10 @@ export function createAudio() {
   on('dungeon-room', ({ room }) => { if (room === 'treasure' || room === 'prize') play(soundFor.treasure); });
   on('dungeon-leave', ({ place, cleared }) => { if (cleared && place.kind !== 'castle') play(soundFor.dungeonCleared); });
   on('castle-conquered', () => play(soundFor.castleConquered));
+  on('nemesis-meet', () => play(soundFor.nemesisMeet));
+  on('nemesis-avenged', () => play(soundFor.nemesisAvenged));
+  on('treasure', () => play(soundFor.treasureFound));
+  on('pet-hit', ({ dodged }) => play(dodged ? soundFor.missed : soundFor.petHit));
   on('song-verse', () => play(soundFor.songVerse));
   on('finale', () => play(soundFor.finale));
   on('boss-move', () => play(soundFor.bossMove));

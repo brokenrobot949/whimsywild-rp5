@@ -32,6 +32,11 @@
 //   finale-open the last verse is found, and the way into the Nightmare opens { life }
 //   song-verse  a verse is sung, in the finale  { life, verse }
 //   finale      the song is finished, and the story with it { life }
+//   nemesis-meet     a hero meets a nemesis      { life, nemesis }
+//   nemesis-avenged  a hero defeats a nemesis    { life, nemesis }
+//   treasure    a treasure is found (and worn)  { life, item }
+//   pet         a pet joins the hero           { life, pet }
+//   pet-hit     the hero's pet joins in a fight { life, pet, dodged, critical, damage }
 //   death       the hero dies (and life.ending.grave is their grave) { life }
 //   log         a new adventure log line      { entry }
 //   life-end    the life is over              { life }

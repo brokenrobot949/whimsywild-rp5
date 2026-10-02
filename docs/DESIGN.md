@@ -69,7 +69,8 @@ That totals about 17–22 decisions, roughly one every 15–20 seconds. This kee
 
 - They happen now and then while the hero walks, and sometimes on arriving in a town, about 4–6 per life. Each event happens at most once per life, and some belong to one region.
 - Every option carries a tag. Some options always work; others are chancy, and each point the hero has in the option's tag makes success likelier. The card shows the odds in words: Likely, Could go either way, or Risky.
-- Outcomes can give or take gold, give experience, potions or an item, heal or hurt (a hurt can be fatal), start a fight, cost time, or grant a blessing: a small bonus that lasts a few years and is listed on the Hero tab.
+- Outcomes can give or take gold, give experience, potions or an item (or, rarely, a treasure), heal or hurt (a hurt can be fatal), start a fight, cost time, or grant a blessing: a small bonus that lasts a few years and is listed on the Hero tab.
+- There are 62: road events anywhere and in each region, town events, dungeon events, tremors, quirk events and the Sweet Dreams events of Act 4.
 
 ## Hero Creation
 
@@ -166,9 +167,20 @@ Combat, looting and equipping are fully automatic; a typical fight resolves in 2
 
 - Four gear slots: Weapon, Armor, Helm and Trinket.
 - Five rarities: Common, Uncommon, Rare, Epic and Legendary.
+- 60 base items: three for each tag in each slot, with stats close to the others in their slot so no item is a trap.
 - Item names carry the whimsy, for example "Mildly Enchanted Boots."
 - The hero equips an item automatically if it scores better, with the score favoring the hero's tags.
 - Gold is spent automatically in towns on potions and shop upgrades, and it counts toward lifetime stats.
+
+**Treasures**
+
+Eleven one-of-a-kind items, each with a name of its own, a line of flavor, and something special about it, like "+25% gold" or "always strikes first".
+
+- **Where they're found:** each monster castle's lord guards one, won by the hero who conquers the castle (7). Three dungeons each hide one, found 1 time in 5 when the dungeon is cleared. One is given out by a story event, the Lady of the Puddle in the Wingshade Fens.
+- **How strong they are:** as strong as a Legendary item of the hero's level, plus their special effect. A treasure is always put on when found. When comparing gear, heroes count it as half as good again as its stats, so they keep it for a good while.
+- **Carrying on:** a hero can't find a treasure they're already wearing. A fallen hero's treasure often becomes the heirloom at their grave, so a later hero can take it up.
+- Finding one notes a deed, earns the epithet "the Treasure-Keeper", and adds it to the Treasures list in the Chronicle (see Collections). Treasures not yet found show where to look, like "Guarded by the lord of a castle in the Tailwoods."
+- In testing (400 lives each way), the new items, treasures and events left the death rate and average final level unchanged. The treasures are in `data/treasures.js`.
 
 **Leveling**
 
@@ -411,6 +423,9 @@ Everything a hero discovers or changes stays in the world for every hero after t
 | Dream shards | Saved as lore entries in the Chronicle |
 | Graves | A dead hero leaves a tombstone where they fell; a later hero passing by can pay respects and recover one heirloom (their best item, scaled to the new hero) |
 | Mentors | Retired heroes settle in a town, and each of the town's three most recent mentors gives a future hero starting there one gift, drawn at random from a pool: usually a lesson, some gold or a few class tricks, sometimes something valuable, sometimes a funny dud. Older retirees stay listed as residents |
+| Nemeses | The monster that fells a hero gets a name and a lair, and haunts its region until a later hero avenges everyone it felled |
+| Collections | The Bestiary, the Book of Epithets and the Treasures list in the Chronicle, kept through every dream of New Game+ |
+| Pets | A fallen hero's pet waits by their grave until a later hero takes it in; a retiring hero's pet retires with them |
 | Hall of Champions and Chronicle | Every hero and every lifetime stat is recorded, across every dream of New Game+ |
 
 Graves and mentors make death and retirement feel different: death leaves an heirloom out in the world, while retirement strengthens a town for everyone who starts there.
@@ -425,6 +440,43 @@ Graves and mentors make death and retirement feel different: death leaves an hei
 - Early fights are where most heroes die, so gifts that help at the start matter a lot; one extra potion or one old item roughly halves a hero's chance of dying young. In testing, three mentors take deaths from about 10% to about 5%, and heroes who draw two strong gifts rarely die. Rob chose to keep it that way: a town with mentors is a real reward for building it up over many lives, rather than making monsters tougher everywhere to compensate.
 - (Earlier, Rob chose a lesson offered at the first pick over a free skill rank, since a free rank from one mentor cut deaths from about 12% to about 3%. The free rank now lives on as the rare masterclass gift.)
 - Heroes who retired before mentors existed were settled in the town their ending names.
+
+**How nemeses work**
+
+Graves and mentors remember the heroes; nemeses remember the monsters that beat them.
+
+- When a monster fells a hero, it becomes a nemesis, as long as its region doesn't already have one (each region has at most one at a time) and it isn't a castle boss. It gets a name, like "Honkwell the Indignant Goose", fights 2 levels above the level it had when it struck, and is 10% tougher besides.
+- It makes its lair at the nearest landmark in its region (never the way into the finale). The lair shows a red "!" on the map, and rumors of it come up twice as often as others, with a red "Nemesis" badge and skulls for its level.
+- Visiting the lair always brings the nemesis out. It also roams: when a fight starts in its region, there's a 12% chance it's the nemesis instead, but only for heroes no more than 3 levels below it.
+- A nemesis never fights below the hero facing it: it rises to at least one level above them. So it's always a real fight, whoever finds it.
+- Each further hero it fells adds a level and another name to its list.
+- The hero who defeats it avenges everyone it felled: a grand deed, the epithet "the Avenger", and the first victim's heirloom taken back from their grave (or a purse of gold, if that heirloom is already gone).
+- The Chronicle lists every living nemesis, with whom it felled and where it lurks, and the 10 most recently avenged, with their avenger. A new dream in New Game+ starts with none.
+- In testing, with a nemesis in every region, heroes who met one won about 90% of the time. The numbers are in `data/nemeses.js`.
+
+**Pets**
+
+Small animals a hero can adopt, one per hero, for company and a little help.
+
+- **Adopting:** each region has a story event with an animal that can be adopted, like a squirrel kit in the Tailwoods, a lamb in Hindhill or an owlet in Smokecrown (7 in all). Most options adopt it, and one does something else. A hero who already has a pet never gets these events. In testing, about 1 hero in 7 adopts a pet.
+- **Names:** the pet gets a name at random, like "Biscuit the Lamb", and the log says who adopted whom.
+- **On the map:** the pet trots one step behind its hero, a little smaller than a tile, and hops when it joins in a fight.
+- **In fights:** every 2.5–3.5 seconds the pet strikes for a quarter or so of the hero's blow, with its own word on the fight card ("Biscuit headbutted for 4") and a little yip. Pets join in almost every fight and deal about 6–9% of the damage. Pets are never hurt.
+- **Besides:** each kind helps in a small way that suits it: the fox kit finds 10% more gold, the lamb helps the hero heal faster on the road, the mountain kid knows shortcuts, and so on. The Hero tab has a Companion section with its picture, what it does and a line about it.
+- **Afterwards:** when the hero retires, the pet retires with them. When the hero falls, the pet waits by their grave, drawn sitting beside the tombstone, and the next hero without a pet who pays respects there takes it in. The Hall of Champions card says "With Biscuit the Lamb."
+- Adopting a pet earns the epithet "the Doting".
+- In testing (400 lives), pets left the death rate and average final level unchanged. The pets are in `data/pets.js` and their events in `data/events.js`.
+
+**Collections**
+
+Three collections in the Chronicle fill up over many lives. Each opens with a tap, and each counts the hero in progress as well as every hero before. Like the Hall of Champions, they carry on through every dream of New Game+.
+
+- **The Bestiary** lists every monster, region by region, including castle bosses and the Nightmare. A monster no hero has met is a dark shadow marked "???". Once met, it shows its picture, name and kind (Beast, Bird and so on), how many times heroes have beaten it, how many heroes it has felled, and the first hero to beat it. Its heading counts the monsters beaten (for example "23 of 50 beaten"). A region still sealed by the mist is called "Beyond the mist" until one of its monsters is met.
+- **The Book of Epithets** lists every epithet, humblest first, with the Lullaby-Singer last. An earned epithet shows its name, how it's earned, the first hero to earn it, and how many have since. An unearned one shows "???" and how to earn it. Monsters no hero has met, places not yet discovered and lullaby verses before Act 2 stay secret ("a certain monster").
+- An epithet counts once a hero's deeds earn it, even if a grander one took its place. So a level-26 hero known as "the Well-Off" also earns "the Seasoned" for the book.
+- Saves from before collections are filled in from the Hall of Champions. For the heroes who still have their full log (the 50 most recent), the game re-reads every monster they met and beat and works out their epithets from their deeds. Heroes whose logs have faded add their final epithet, the deeds in their record (level, gold, skills, dungeons and so on) and the monster that felled them. In testing, the rebuilt counts matched the live ones exactly. The one exception is close calls, which aren't in the log.
+- **Treasures** lists the eleven treasures (see "Treasures" above). A found treasure shows its name, slot, special effect, flavor, the first hero to find it and how many times it's been found. One not yet found shows "???" and where to look, keeping regions under the mist secret.
+- The words are in `data/collections.js` and `data/treasures.js`.
 
 ## Interface
 
@@ -553,8 +605,8 @@ Build in four phases, each playable on its own; Phase 1 proves a five-minute lif
 | Origins | 15 |
 | Quirks | 20 |
 | Monsters | ~40 (5–6 per region) |
-| Base items | ~60 |
-| Story events | 50+ |
+| Base items | 60, plus 11 treasures |
+| Story events | 62 |
 | Rumors | ~40 |
 | Dream modifiers | 12 |
 | Dungeons | ~10 |
@@ -592,6 +644,10 @@ Every design question is decided.
 | The finale | Once all seven verses are found, the Deepest Nightmare opens through Lidwater: a dream from each region, then the song, where the hero sings each verse as the Nightmare weakens. The hero who finishes it ends their life right there as "the Lullaby-Singer", and the ending scrolls every hero ever run. See "The finale" above |
 | The post-game | Act 4, Sweet Dreams, begins when the song is sung and never ends: every region 3% calmer, no more storm or giant dreams, four new gentle dreams, a new story event per region, new rumors and tavern talk. See "After the ending" above |
 | New Game+ | From Act 4, the player can let Sominus dream again: the map turns a new way (mirrored, upside down, both), the fog and the story start over, the singer becomes a legend whose gift every hero carries, and the new dream is gentle or restless. The Hall of Champions and a list of past dreams carry over. See "New Game+: Sominus Rolls Over" above |
+| Nemeses | Added after Phase 4 (Rob's pick from a list of ideas). A hero's killer becomes a named nemesis with a lair, one per region, that rises to meet whoever faces it; defeating it avenges every hero it felled. See "How nemeses work" above |
+| Collections | Added after Phase 4 (Rob's pick from a list of ideas): a Bestiary and a Book of Epithets, as collapsible sections in the Chronicle rather than a new tab, so the bottom bar stays roomy on phones. Unmet monsters are shadows; unearned epithets show how to earn them. See "Collections" above |
+| More events and items | Added after Phase 4 (Rob's pick from a list of ideas): 14 new story events (62 in all), 39 new base items (60 in all), and 11 treasures with special effects: one per castle lord, three in dungeons and one from a story event. See "Treasures" above |
+| Pets | Added after Phase 4 (Rob's pick from a list of ideas, built as recommended): one rare adoption event per region, one pet per hero, pets follow on the map, join in fights and give a small bonus, never get hurt, retire with their hero, and wait at a fallen hero's grave for the next hero. See "Pets" above |
 | Dangerous ground | Heroes steer around regions whose lowest monster level is more than 3 above their own, unless that region is where they're going, and they only head "home" to towns in regions they can handle. So a hero only faces a far tougher region by choosing a risky rumor, never by taking a shortcut |
 | Graves and heirlooms | A fallen hero's tombstone stays on the map, marked with their first name (the 30 most recent are kept). Their best item waits beside it as an heirloom, shown by a gold sparkle. The first later hero to pass within 3 tiles pays respects and takes it, remade at their own level; they wear it if it's better, or sell it. Taking one earns the epithet "the Heir" |
 | Rumor choices per life | About 7–9 at the end of Phase 2, above the 3–5 in the decision budget. Kept as they are for now; revisit once story events add their own decisions |

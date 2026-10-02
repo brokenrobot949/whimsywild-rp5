@@ -7,7 +7,7 @@ import { rarities } from '../../data/items.js';
 export { closeCallShare };
 
 // Check the data once at startup, so a typo shows a clear message.
-const KINDS = ['slain', 'slainTotal', 'closeCalls', 'potions', 'goldFound', 'visits', 'found', 'level', 'skillRank', 'respects', 'events', 'shards', 'dungeons', 'castles', 'verses'];
+const KINDS = ['slain', 'slainTotal', 'closeCalls', 'potions', 'goldFound', 'visits', 'found', 'level', 'skillRank', 'respects', 'events', 'shards', 'dungeons', 'castles', 'verses', 'avenged', 'treasures', 'pets'];
 for (const entry of epithets) {
   const owner = `The epithet "${entry.epithet}" in data/epithets.js`;
   const kind = Object.keys(entry.when).find((key) => KINDS.includes(key));
@@ -23,9 +23,10 @@ for (const entry of epithets) {
   }
 }
 
-// A fresh set of deed counters for a new life.
+// A fresh set of deed counters for a new life. (`met` counts the monsters fought, by kind, for
+// the Bestiary.)
 export function newTally() {
-  return { slain: {}, closeCalls: 0, potions: 0, visits: {}, found: {}, respects: 0, events: 0, shards: 0, dungeons: 0, castles: 0, verses: 0 };
+  return { slain: {}, met: {}, treasures: {}, pets: 0, closeCalls: 0, potions: 0, visits: {}, found: {}, respects: 0, events: 0, shards: 0, dungeons: 0, castles: 0, verses: 0, avenged: 0 };
 }
 
 // A grander epithet than the hero's current one, if their deeds have earned it; otherwise null.
@@ -38,6 +39,11 @@ export function newEpithet(life) {
     if (earned(life, entry.when)) best = entry;
   }
   return best?.epithet ?? null;
+}
+
+// Every epithet the hero's deeds have earned, whatever its rank (for the Book of Epithets).
+export function earnedEpithets(life) {
+  return epithets.filter((entry) => earned(life, entry.when)).map((entry) => entry.epithet);
 }
 
 function earned(life, when) {
@@ -56,6 +62,9 @@ function earned(life, when) {
   if ('dungeons' in when) return (tally.dungeons ?? 0) >= when.dungeons;
   if ('castles' in when) return (tally.castles ?? 0) >= when.castles;
   if ('verses' in when) return (tally.verses ?? 0) >= when.verses;
+  if ('avenged' in when) return (tally.avenged ?? 0) >= when.avenged;
+  if ('treasures' in when) return Object.keys(tally.treasures ?? {}).length >= when.treasures;
+  if ('pets' in when) return (tally.pets ?? 0) >= when.pets;
   if ('skillRank' in when) return Math.max(0, ...Object.values(hero.skills)) >= when.skillRank;
   return false;
 }

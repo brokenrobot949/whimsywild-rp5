@@ -29,6 +29,7 @@ export function buildWorld(turn = 0) {
   world.shards = [];                // dream shards found so far: { id, hero } (see shards.js)
   world.conquered = [];             // monster castles conquered so far: { place, hero, age } (see castles.js)
   world.verses = [];                // verses of the lullaby found so far: { id, hero, age } (see story.js)
+  world.nemeses = [];               // monsters remembered for felling a hero (see nemeses.js)
   world.actSeen = 1;                // the latest act whose interlude the player has seen
   world.finale = null;              // once the song is sung: { hero, epithet, age } (see finale.js)
   world.cycle = { number: 1, mood: 'gentle', legend: null }; // which dream this is (see new-dream.js)

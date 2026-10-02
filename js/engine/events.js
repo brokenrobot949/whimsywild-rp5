@@ -5,13 +5,15 @@ import { tags } from '../../data/skills.js';
 import { regions } from '../../data/regions.js';
 import { monsters } from '../../data/monsters.js';
 import { slots, rarities } from '../../data/items.js';
+import { treasures } from '../../data/treasures.js';
+import { pets } from '../../data/pets.js';
 import { quirks } from '../../data/quirks.js';
 import { fill } from './text.js';
 import { checkEffects } from './skills.js';
 import { currentAct } from './story.js';
 
 const TAG_IDS = tags.map((tag) => tag.id);
-const OUTCOME_KEYS = ['line', 'gold', 'xp', 'hp', 'potions', 'item', 'fight', 'blessing', 'rest', 'reveal'];
+const OUTCOME_KEYS = ['line', 'gold', 'xp', 'hp', 'potions', 'item', 'treasure', 'pet', 'fight', 'blessing', 'rest', 'reveal'];
 const WHERE = ['road', 'town', 'dungeon', 'tremor'];
 
 // ---- Checking the data ----
@@ -48,6 +50,8 @@ function checkOutcome(outcome, event, owner) {
     if (name && !monsters.some((kind) => kind.name === name)) throw new Error(`${owner} fights "${name}", which isn't in data/monsters.js.`);
   }
   if ('reveal' in outcome && !(outcome.reveal > 0)) throw new Error(`${owner} needs a reveal above 0 (tiles).`);
+  if (outcome.pet && !pets.some((pet) => pet.id === outcome.pet)) throw new Error(`${owner} gives the pet "${outcome.pet}", which isn't in data/pets.js.`);
+  if (outcome.treasure && !treasures.some((treasure) => treasure.id === outcome.treasure)) throw new Error(`${owner} gives the treasure "${outcome.treasure}", which isn't in data/treasures.js.`);
   if (outcome.item && outcome.item !== 'drop') {
     const { rarity, slot } = outcome.item;
     if (rarity && !rarities.some((option) => option.id === rarity)) throw new Error(`${owner} gives an item of rarity "${rarity}", which isn't in data/items.js.`);
@@ -77,8 +81,14 @@ export function pickEvent(rng, life, where, region) {
     && (!event.quirk || event.quirk === life.hero.quirk)
     && (!event.levels || (level >= event.levels[0] && level <= event.levels[1]))
     && (event.fromAct ?? 1) <= act && act <= (event.untilAct ?? Infinity)
-    && !life.eventsSeen.includes(event.id));
+    && !life.eventsSeen.includes(event.id)
+    && !(life.hero.pet && givesPet(event))); // one pet per hero
   return possible.length > 0 ? rng.pickWeighted(possible, (event) => event.weight ?? 1) : null;
+}
+
+// Whether any of an event's options can give the hero a pet.
+function givesPet(event) {
+  return event.options.some((option) => option.success?.pet || option.failure?.pet);
 }
 
 // ---- Odds ----

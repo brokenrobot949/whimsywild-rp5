@@ -21,6 +21,8 @@ import { loadShards } from './engine/shards.js';
 import { loadConquered } from './engine/castles.js';
 import { loadVerses, unseenActs, skipToNextAct, currentAct, actInfo } from './engine/story.js';
 import { turnOf, nextDream, pastDream } from './engine/new-dream.js';
+import { loadNemeses } from './engine/nemeses.js';
+import { newCollections, collectLife } from './engine/collections.js';
 import { fill } from './engine/text.js';
 import { moods, newDreamText } from '../data/new-dream.js';
 import { dreamById, rollDream } from './engine/dreams.js';
@@ -44,6 +46,8 @@ const params = new URLSearchParams(location.search);
 const debugMode = params.has('debug');
 
 const save = loadSave();
+save.collections ??= newCollections();
+save.collections.treasures ??= {}; // (collections from before treasures)
 // New Game+: each new dream, the land lies a different way round (see new-dream.js).
 const world = buildWorld(turnOf(save.world.cycle?.number ?? 1));
 world.cycle = save.world.cycle ?? world.cycle;
@@ -56,6 +60,7 @@ world.mentors = loadMentors(save.world.mentors);
 world.shards = loadShards(save.world.shards);
 world.conquered = loadConquered(save.world.conquered);
 world.verses = loadVerses(save.world.verses);
+world.nemeses = loadNemeses(save.world.nemeses, world.places);
 world.actSeen = save.world.actSeen ?? 1;
 world.finale = save.world.finale ?? null; // who sang the dragon to sleep, once someone has
 refreshSeals(world); // regions the story has opened
@@ -81,6 +86,7 @@ const screens = createScreens({
   getLives: () => save.lives,
   getPastDreams: () => save.pastDreams ?? [],
   getPendingDream: () => save.pendingDream ?? null,
+  getCollections: () => save.collections,
   onNewDream: () => offerNewDream(),
 });
 const audio = createAudio(); // silent until the player's first tap
@@ -161,6 +167,7 @@ function saveProgress(force = false) {
     actSeen: world.actSeen,
     finale: world.finale,
     cycle: world.cycle,
+    nemeses: world.nemeses,
   };
   if (!writeSave(save) && !warnedSaveFailed) {
     warnedSaveFailed = true;
@@ -175,6 +182,8 @@ on('shard', () => saveProgress(true));
 on('castle-conquered', () => saveProgress(true));
 on('verse', () => saveProgress(true));
 on('finale-open', () => saveProgress(true));
+on('nemesis-avenged', () => saveProgress(true));
+on('treasure', () => saveProgress(true));
 
 // ---- Lives ----
 
@@ -292,6 +301,7 @@ function showNewHeroCard() {
 
 function finishLife() {
   save.lives.push(lifeRecord(life));
+  collectLife(save.collections, life); // the Bestiary and the Book of Epithets
   // Older heroes let their full logs go, to save space in the browser.
   for (const record of save.lives.slice(0, -keepLogs)) record.log = null;
   saveProgress(true);

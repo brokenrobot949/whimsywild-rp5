@@ -42,13 +42,18 @@ export const helpTopics = [
     ],
   },
   {
-    title: 'Towns, retiring and graves',
+    title: 'Towns, retiring, graves, pets and nemeses',
     text: [
       'In a town, heroes heal, buy potions and better gear, and hear new rumors.',
       'From age 60, a hero arriving in a town can retire there. Retired heroes become mentors, '
         + 'and each hero who starts in that town gets a gift from its newest mentors.',
       'A hero who falls leaves a grave. The next hero to pass by pays their respects and takes '
         + 'the fallen hero\'s best item as an heirloom.',
+      'Now and then a hero meets a small animal on the road and can adopt it. A pet follows its '
+        + 'hero, joins in fights and helps in a small way. If its hero falls, it waits by the grave '
+        + 'for the next hero to take it in.',
+      'The monster that fells a hero may become a nemesis, with a name and a lair (a red "!" '
+        + 'on the map). It grows bolder with every hero it beats. Defeat it to avenge them all.',
     ],
   },
   {
@@ -60,6 +65,8 @@ export const helpTopics = [
         + 'whether to press on or turn back.',
       'Monster castles are longer and harder, with a boss at the end. Beat one and it stays '
         + 'conquered for every hero after, and its region grows a little safer.',
+      'Each castle\'s lord guards a treasure: a one-of-a-kind item with something special about it. '
+        + 'A few dungeons hide one too. The Chronicle keeps a list of every treasure found.',
     ],
   },
   {
@@ -85,7 +92,8 @@ export const helpTopics = [
     title: 'The other tabs',
     text: [
       'Hero: the current hero\'s stats, skills, gear and background.',
-      'Chronicle: the story so far, and everything every hero has achieved.',
+      'Chronicle: the story so far, and everything every hero has achieved. Its Bestiary and '
+        + 'Book of Epithets fill up as heroes meet new monsters and earn new titles.',
       'Hall of Champions: a card for every hero who has lived. Tap one to read their whole adventure.',
     ],
   },

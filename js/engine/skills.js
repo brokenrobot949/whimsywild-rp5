@@ -9,6 +9,7 @@ import { families } from '../../data/monsters.js';
 import { quirks } from '../../data/quirks.js';
 import { dreams } from '../../data/dreams.js';
 import { moods } from '../../data/new-dream.js';
+import { pets } from '../../data/pets.js';
 import { fill, capitalize } from './text.js';
 
 const TAG_IDS = tags.map((tag) => tag.id);
@@ -114,6 +115,9 @@ export function totalEffects(hero) {
   for (const heroClass of classPath(hero)) add(heroClass.perk.effects);
   for (const blessing of hero.blessings ?? []) add(blessing.effects);
   for (const mentor of hero.mentors ?? []) add(mentor.effects);
+  for (const item of Object.values(hero.gear ?? {})) if (item?.effects) add(item.effects); // treasures
+  const pet = hero.pet && pets.find((kind) => kind.id === hero.pet.id); // a pet (see pets.js)
+  if (pet?.effects) add(pet.effects);
   const quirk = quirkById(hero.quirk);
   if (quirk) add(quirk.effects);
   const dream = dreams.find((option) => option.id === hero.dream); // tonight's dream (see dreams.js)

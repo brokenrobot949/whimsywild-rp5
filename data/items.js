@@ -36,6 +36,14 @@ export const rarities = [
     id: 'legendary', name: 'Legendary', dropWeight: 1, shopWeight: 0, strength: 3, color: '#b8580f',
     prefixes: ['Legendary', 'Fabled', 'Mythic', 'Dragon-Kissed'],
   },
+  // Treasures: one of a kind, each with a name of its own and something special about it (see
+  // data/treasures.js). Never dropped or sold in shops; heroes find them in particular places.
+  //   keepWorth  when a hero compares it with other gear, it counts as this many times as good,
+  //              so heroes hold on to their treasures for a good while
+  {
+    id: 'treasure', name: 'Treasure', dropWeight: 0, shopWeight: 0, strength: 3, color: '#a07800',
+    prefixes: [], keepWorth: 1.5,
+  },
 ];
 
 // How much each stat point counts when the hero compares two items. Shop prices use it too.
@@ -48,34 +56,80 @@ export const statNames = { power: 'power', defense: 'defense', maxHp: 'HP', spee
 // Speed and luck grow only with rarity, not with level.
 export const itemGrowth = 0.17;
 
-// Base items. The stats are for a Common item at level 1.
+// Base items. The stats are for a Common item at level 1. Each slot has three items for each tag.
 //   tag  the kind of hero it suits: Might, Arcane, Faith, Cunning or Wild.
-//        (Heroes will favor their own tags once skills arrive.)
+// To keep items fair, keep a new item's stats near the others in its slot. Adding up each stat
+// times its worth (statWorth above): weapons come to about 5, armor about 3.5, helms about 2.3
+// and trinkets about 2. Speed and luck don't grow with level, so items made mostly of them
+// matter most early on.
 export const baseItems = [
+  // Weapons
   { name: 'Cudgel', slot: 'weapon', tag: 'Might', stats: { power: 1.6 } },
   { name: 'Short Sword', slot: 'weapon', tag: 'Might', stats: { power: 1.4, defense: 0.3 } },
+  { name: "Woodcutter's Axe", slot: 'weapon', tag: 'Might', stats: { power: 1.5, maxHp: 1 } },
   { name: 'Walking Staff', slot: 'weapon', tag: 'Arcane', stats: { power: 1.2, maxHp: 3 } },
+  { name: 'Wand of Mild Sparks', slot: 'weapon', tag: 'Arcane', stats: { power: 1.3, luck: 1 } },
+  { name: 'Crystal-Tipped Rod', slot: 'weapon', tag: 'Arcane', stats: { power: 1.4, maxHp: 1 } },
   { name: 'Candlestick', slot: 'weapon', tag: 'Faith', stats: { power: 1.2, defense: 0.5 } },
+  { name: 'Bell-Mace', slot: 'weapon', tag: 'Faith', stats: { power: 1.3, defense: 0.4 } },
+  { name: "Shepherd's Crook", slot: 'weapon', tag: 'Faith', stats: { power: 1.1, maxHp: 3 } },
   { name: 'Dagger', slot: 'weapon', tag: 'Cunning', stats: { power: 1.1, luck: 2 } },
+  { name: 'Sword-Cane', slot: 'weapon', tag: 'Cunning', stats: { power: 1.2, speed: 0.4 } },
+  { name: 'Slingshot', slot: 'weapon', tag: 'Cunning', stats: { power: 1, luck: 1, speed: 0.3 } },
   { name: 'Pitchfork', slot: 'weapon', tag: 'Wild', stats: { power: 1.3, speed: 0.5 } },
+  { name: 'Hunting Bow', slot: 'weapon', tag: 'Wild', stats: { power: 1.4, speed: 0.2 } },
+  { name: 'Garden Sickle', slot: 'weapon', tag: 'Wild', stats: { power: 1.3, luck: 1 } },
 
+  // Armor
   { name: 'Chainmail Vest', slot: 'armor', tag: 'Might', stats: { defense: 1.2, maxHp: 2 } },
+  { name: 'Dented Breastplate', slot: 'armor', tag: 'Might', stats: { defense: 1.4, maxHp: 1 } },
+  { name: 'Padded Gambeson', slot: 'armor', tag: 'Might', stats: { defense: 1, maxHp: 3 } },
   { name: 'Wizard Robe', slot: 'armor', tag: 'Arcane', stats: { defense: 0.5, maxHp: 3, luck: 1 } },
+  { name: 'Starry Mantle', slot: 'armor', tag: 'Arcane', stats: { defense: 0.5, maxHp: 2, luck: 1.5 } },
+  { name: "Alchemist's Apron", slot: 'armor', tag: 'Arcane', stats: { defense: 0.7, maxHp: 3, luck: 0.5 } },
   { name: "Pilgrim's Cloak", slot: 'armor', tag: 'Faith', stats: { defense: 0.7, maxHp: 5 } },
+  { name: 'Woolen Habit', slot: 'armor', tag: 'Faith', stats: { defense: 0.6, maxHp: 5 } },
+  { name: 'Embroidered Vestments', slot: 'armor', tag: 'Faith', stats: { defense: 0.8, maxHp: 4 } },
   { name: 'Leather Jerkin', slot: 'armor', tag: 'Cunning', stats: { defense: 0.8, speed: 0.5 } },
+  { name: 'Shadowy Cloak', slot: 'armor', tag: 'Cunning', stats: { defense: 0.6, speed: 0.5, luck: 0.5 } },
+  { name: 'Patched Waistcoat', slot: 'armor', tag: 'Cunning', stats: { defense: 0.7, maxHp: 1, luck: 1.5 } },
   { name: 'Mossy Tunic', slot: 'armor', tag: 'Wild', stats: { defense: 0.6, maxHp: 4 } },
+  { name: 'Bark Mail', slot: 'armor', tag: 'Wild', stats: { defense: 1, maxHp: 2 } },
+  { name: 'Fur-Lined Coat', slot: 'armor', tag: 'Wild', stats: { defense: 0.5, maxHp: 5 } },
 
+  // Helms
   { name: 'Tin Pot Helm', slot: 'helm', tag: 'Might', stats: { defense: 0.8, maxHp: 1 } },
+  { name: 'Horned Helmet', slot: 'helm', tag: 'Might', stats: { defense: 0.9, maxHp: 0.5 } },
+  { name: 'Kettle Hat', slot: 'helm', tag: 'Might', stats: { defense: 1 } },
   { name: 'Pointy Hat', slot: 'helm', tag: 'Arcane', stats: { defense: 0.3, luck: 2 } },
+  { name: 'Thinking Cap', slot: 'helm', tag: 'Arcane', stats: { defense: 0.2, maxHp: 2, luck: 1 } },
+  { name: 'Circlet of Mild Insight', slot: 'helm', tag: 'Arcane', stats: { defense: 0.2, power: 0.3, luck: 1 } },
   { name: 'Humble Hood', slot: 'helm', tag: 'Faith', stats: { defense: 0.4, maxHp: 3 } },
+  { name: 'Halo-Shaped Hat', slot: 'helm', tag: 'Faith', stats: { defense: 0.5, maxHp: 2.5 } },
+  { name: "Monk's Cowl", slot: 'helm', tag: 'Faith', stats: { defense: 0.4, maxHp: 2, luck: 0.5 } },
   { name: 'Feathered Cap', slot: 'helm', tag: 'Cunning', stats: { defense: 0.3, luck: 1, speed: 0.3 } },
+  { name: 'Rakish Eyepatch', slot: 'helm', tag: 'Cunning', stats: { luck: 1.5, speed: 0.3 } },
+  { name: 'Masked Hood', slot: 'helm', tag: 'Cunning', stats: { defense: 0.3, speed: 0.5 } },
   { name: 'Straw Hat', slot: 'helm', tag: 'Wild', stats: { defense: 0.3, maxHp: 3 } },
+  { name: 'Antler Crown', slot: 'helm', tag: 'Wild', stats: { defense: 0.5, maxHp: 2, luck: 0.3 } },
+  { name: 'Flower Wreath', slot: 'helm', tag: 'Wild', stats: { maxHp: 3, luck: 1 } },
 
+  // Trinkets
   { name: 'Iron Ring', slot: 'trinket', tag: 'Might', stats: { power: 0.4, defense: 0.3 } },
+  { name: 'Whetstone', slot: 'trinket', tag: 'Might', stats: { power: 0.6 } },
+  { name: "Champion's Medal", slot: 'trinket', tag: 'Might', stats: { defense: 0.4, maxHp: 2 } },
   { name: 'Glowing Marble', slot: 'trinket', tag: 'Arcane', stats: { power: 0.6 } },
+  { name: 'Bottled Thundercloud', slot: 'trinket', tag: 'Arcane', stats: { power: 0.5, luck: 0.5 } },
+  { name: "Wizard's Spare Spectacles", slot: 'trinket', tag: 'Arcane', stats: { power: 0.3, luck: 1 } },
   { name: 'Holy Pebble', slot: 'trinket', tag: 'Faith', stats: { defense: 0.4, maxHp: 2 } },
+  { name: 'Prayer Beads', slot: 'trinket', tag: 'Faith', stats: { defense: 0.2, maxHp: 3 } },
+  { name: "Saint's Thimble", slot: 'trinket', tag: 'Faith', stats: { defense: 0.6, luck: 0.5 } },
   { name: 'Lucky Button', slot: 'trinket', tag: 'Cunning', stats: { luck: 3 } },
+  { name: 'Loaded Dice', slot: 'trinket', tag: 'Cunning', stats: { luck: 2.5 } },
+  { name: 'Pocket Watch', slot: 'trinket', tag: 'Cunning', stats: { defense: 0.4, speed: 0.3 } },
   { name: 'Acorn Charm', slot: 'trinket', tag: 'Wild', stats: { maxHp: 4 } },
+  { name: 'Bird Whistle', slot: 'trinket', tag: 'Wild', stats: { speed: 0.2, maxHp: 2.5 } },
+  { name: "Rabbit's Foot", slot: 'trinket', tag: 'Wild', stats: { luck: 1, maxHp: 2 } },
 ];
 
 export const loot = {

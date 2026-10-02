@@ -41,6 +41,8 @@ export const eventSettings = {
 //   potions: 1               healing potions gained
 //   item: 'drop'             an item like a monster drop, at the hero's level
 //   item: { rarity: 'rare', slot: 'helm' }   a particular rarity and/or slot
+//   treasure: 'puddlebrand'  a treasure, worn at once (treasure ids are in treasures.js)
+//   pet: 'lamb'              a pet joins the hero, if they have none (pet ids are in pets.js)
 //   fight: 'Mimic'           a fight with that monster (not in town events)
 //   fight: { monster: 'Mimic', levels: 2 }   ...and this many levels stronger than usual
 //   fight: { levels: 1 }     a fight with a monster from the region the hero is in
@@ -182,6 +184,71 @@ export const events = [
     ],
   },
 
+  {
+    id: 'bard-ballad', where: 'road',
+    title: 'A Bard in Search of a Hero',
+    text: 'A bard is writing a ballad about a great hero, and is stuck for a rhyme. They look hopeful.',
+    options: [
+      {
+        text: 'Strike a heroic pose', tag: 'Might',
+        success: { line: 'struck a heroic pose for a bard. The ballad is mostly about arms.', xp: 1 },
+      },
+      {
+        text: 'Ask for a humble verse', tag: 'Faith',
+        success: {
+          line: 'asked a bard for a humble ballad, and felt quietly lifted.',
+          blessing: { name: 'Humble Ballad', effects: { boost: { maxHp: 0.08 } }, seasons: 20 },
+        },
+      },
+      {
+        text: 'Pay for a better rhyme', tag: 'Cunning', chance: 0.6,
+        success: { line: 'paid a bard for a ballad. It sold well. They got a share.', gold: 2 },
+        failure: { line: 'paid a bard, who rhymed their name with "bucket".', gold: -1 },
+      },
+    ],
+  },
+  {
+    id: 'lost-lamb', where: 'road',
+    title: 'The Lost Lamb',
+    text: 'A lamb is bleating in a bramble thicket. Somewhere nearby, its mother is bleating louder.',
+    options: [
+      {
+        text: 'Follow the bleating', tag: 'Wild',
+        success: { line: 'reunited a lost lamb with its mother, and found a shortcut.', reveal: 10, xp: 0.5 },
+      },
+      {
+        text: 'Carry it home', tag: 'Faith',
+        success: { line: 'carried a lost lamb home, and was given a hot supper.', hp: 0.4, potions: 1 },
+      },
+      {
+        text: 'Hack through the thicket', tag: 'Might', chance: 0.7,
+        success: { line: 'hacked a lamb out of the brambles. The lamb was grateful.', xp: 1 },
+        failure: { line: 'hacked into a bramble thicket. The thicket hacked back.', hp: -0.15 },
+      },
+    ],
+  },
+  {
+    id: 'bottled-map', where: 'road',
+    title: 'A Map in a Bottle',
+    text: 'A bottle lies in a ditch, a long way from any sea. Inside is a map, and a very old smell.',
+    options: [
+      {
+        text: 'Decipher the map', tag: 'Arcane', chance: 0.65,
+        success: { line: 'deciphered a map in a bottle, and saw the land anew.', reveal: 16 },
+        failure: { line: 'read a bottled map for an hour. It was a recipe.', xp: 0.5 },
+      },
+      {
+        text: 'Sell it to a collector', tag: 'Cunning',
+        success: { line: 'sold a map in a bottle to a very excited collector.', gold: 2 },
+      },
+      {
+        text: 'Follow your nose', tag: 'Wild', chance: 0.6,
+        success: { line: 'followed a bottled map by smell alone, and found its cache.', item: 'drop' },
+        failure: { line: 'followed a bottled map by smell, straight into a monster.', fight: { levels: 0 } },
+      },
+    ],
+  },
+
   // ---- The Tailwoods ----
   {
     id: 'fairy-dance', where: 'road', regions: ['tailwoods', 'fens'],
@@ -224,6 +291,31 @@ export const events = [
       {
         text: 'Go the long way round', tag: 'Cunning',
         success: { line: 'went the long way round a goose. It took all day.', rest: 1 },
+      },
+    ],
+  },
+
+  {
+    id: 'honey-tree', where: 'road', regions: ['tailwoods'],
+    title: 'The Honey Tree',
+    text: 'An old oak drips with golden honey. It also hums, rather a lot, with bees.',
+    options: [
+      {
+        text: 'Reach right in', tag: 'Might', chance: 0.5,
+        success: { line: 'reached into a honey tree and came out sticky and rich.', gold: 2, hp: 0.2 },
+        failure: { line: 'reached into a honey tree. The bees reached back.', hp: -0.2 },
+      },
+      {
+        text: 'Hum along with the bees', tag: 'Wild', chance: 0.7,
+        success: {
+          line: 'hummed with the bees of a honey tree, who shared a comb.',
+          blessing: { name: 'Honey Supper', effects: { healing: 0.3 }, seasons: 16 },
+        },
+        failure: { line: 'hummed at a honey tree, off key. The bees took offense.', hp: -0.1 },
+      },
+      {
+        text: 'Wait for them to nap', tag: 'Cunning',
+        success: { line: 'waited for the bees of a honey tree to nap, then helped themselves.', potions: 1 },
       },
     ],
   },
@@ -271,6 +363,31 @@ export const events = [
     ],
   },
 
+  {
+    id: 'prize-marrow', where: 'road', regions: ['hindhill'],
+    title: 'The Prize Marrow',
+    text: 'A farmer needs help getting a marrow to the fair. It is the size of a small cottage.',
+    options: [
+      {
+        text: 'Carry it', tag: 'Might', chance: 0.6,
+        success: { line: 'carried a prize marrow to the fair. It won. So did they.', gold: 2, xp: 1 },
+        failure: { line: 'tried to carry a prize marrow, and was flattened by it.', hp: -0.2 },
+      },
+      {
+        text: 'Shrink it a little', tag: 'Arcane', chance: 0.6,
+        success: { line: 'shrank a prize marrow to a carryable size. Nobody noticed.', xp: 1.5 },
+        failure: { line: 'tried to shrink a marrow. It grew. The farmer was thrilled.', gold: 1 },
+      },
+      {
+        text: 'Bless the harvest', tag: 'Faith',
+        success: {
+          line: "blessed a farmer's harvest, and shared their lunch.",
+          blessing: { name: "Farmer's Thanks", effects: { boost: { maxHp: 0.1 } }, seasons: 16 },
+        },
+      },
+    ],
+  },
+
   // ---- The Glittering Flank ----
   {
     id: 'buried-chest', where: 'road', regions: ['flank'],
@@ -310,6 +427,30 @@ export const events = [
         text: 'Forge a pass', tag: 'Cunning', chance: 0.65,
         success: { line: 'forged a toll pass and sold copies to other travelers.', gold: 3 },
         failure: { line: 'forged a toll pass. The goblin forged a better fine.', gold: -1.5 },
+      },
+    ],
+  },
+
+  {
+    id: 'golden-stream', where: 'road', regions: ['flank'],
+    title: 'The Golden Stream',
+    text: 'A little stream glitters with flakes of gold, washed down from somewhere further up.',
+    options: [
+      {
+        text: 'Pan for gold', tag: 'Cunning', chance: 0.6,
+        success: { line: 'panned a golden stream and filled a pouch.', gold: 3 },
+        failure: { line: 'panned a golden stream, until a goblin claimed it.', fight: 'Treasure Goblin' },
+      },
+      {
+        text: 'Follow it upstream', tag: 'Wild',
+        success: { line: 'followed a golden stream to its source, and a fine view.', reveal: 12, item: 'drop' },
+      },
+      {
+        text: 'Leave it glittering', tag: 'Faith',
+        success: {
+          line: 'left a golden stream alone. Somehow, their luck improved.',
+          blessing: { name: 'Clear Conscience', effects: { boost: { luck: 0.3 } }, seasons: 20 },
+        },
       },
     ],
   },
@@ -361,6 +502,29 @@ export const events = [
     ],
   },
 
+  {
+    // The way to the treasure Puddlebrand (see treasures.js).
+    id: 'puddle-lady', where: 'road', regions: ['fens'],
+    title: 'The Lady of the Puddle',
+    text: 'An arm rises from a puddle, holding a gleaming sword. The puddle is about ankle deep.',
+    options: [
+      {
+        text: 'Kneel and ask for it', tag: 'Faith', chance: 0.3,
+        success: { line: 'knelt before the Lady of the Puddle, who found them worthy.', treasure: 'puddlebrand' },
+        failure: { line: 'knelt at a puddle. The Lady decided to wait for someone else.' },
+      },
+      {
+        text: 'Grab the sword', tag: 'Might', chance: 0.2,
+        success: { line: 'won a tug-of-war with the Lady of the Puddle.', treasure: 'puddlebrand' },
+        failure: { line: 'grabbed at the Lady of the Puddle, and was soaked.', hp: -0.15 },
+      },
+      {
+        text: 'Ask for something smaller', tag: 'Cunning',
+        success: { line: 'asked the Lady of the Puddle for something smaller. Coins!', gold: 2 },
+      },
+    ],
+  },
+
   // ---- The Spine Peaks ----
   {
     id: 'polite-joust', where: 'road', regions: ['spine'],
@@ -408,6 +572,30 @@ export const events = [
     ],
   },
 
+  {
+    id: 'peak-hermit', where: 'road', regions: ['spine'],
+    title: 'The Hermit of the Peaks',
+    text: 'A hermit sits on a ledge, eyes closed. "Ah," they say. "I have been expecting someone else."',
+    options: [
+      {
+        text: 'Debate the meaning of it all', tag: 'Arcane', chance: 0.7,
+        success: { line: 'out-argued a mountain hermit, who was delighted.', xp: 2 },
+        failure: { line: 'debated a hermit for a week, and lost.', rest: 2, xp: 1 },
+      },
+      {
+        text: 'Chop their firewood', tag: 'Might',
+        success: {
+          line: "chopped a hermit's firewood, and learned to breathe properly.",
+          blessing: { name: 'Mountain Breath', effects: { boost: { defense: 0.1 } }, seasons: 20 },
+        },
+      },
+      {
+        text: 'Sit and meditate', tag: 'Faith',
+        success: { line: 'meditated beside a hermit until the aches went away.', hp: 0.5, xp: 0.5 },
+      },
+    ],
+  },
+
   // ---- The Clawlands ----
   {
     id: 'ghost-general', where: 'road', regions: ['claws'],
@@ -449,6 +637,27 @@ export const events = [
       {
         text: 'Leave it for the dead', tag: 'Faith',
         success: { line: 'left the old wagon for the soldiers who never came back for it.', xp: 0.5 },
+      },
+    ],
+  },
+
+  {
+    id: 'old-catapult', where: 'road', regions: ['claws'],
+    title: 'The Abandoned Catapult',
+    text: 'An old catapult stands on a ridge, still loaded, still aimed at something long gone.',
+    options: [
+      {
+        text: 'Fire it', tag: 'Might',
+        success: { line: 'fired an old catapult. Something on the far ridge objected.', fight: { levels: 1 }, xp: 1 },
+      },
+      {
+        text: 'Work out the angles', tag: 'Arcane', chance: 0.7,
+        success: { line: "studied an old catapult's aim, and spotted a hidden road.", reveal: 16, xp: 0.5 },
+        failure: { line: 'worked out the angles on a catapult. It went off anyway.', hp: -0.15 },
+      },
+      {
+        text: 'Sell it for scrap', tag: 'Cunning',
+        success: { line: 'sold an old catapult to a scrap dealer, piece by piece.', gold: 2 },
       },
     ],
   },
@@ -679,6 +888,149 @@ export const events = [
     ],
   },
 
+  // ---- Pets: a rare chance to adopt an animal, one in each region (see pets.js) ----
+  // (A hero who already has a pet never gets these. To make pets rarer, give these a weight below 1.)
+  {
+    id: 'squirrel-kit', where: 'road', regions: ['tailwoods'],
+    title: 'A Squirrel Kit',
+    text: 'A tiny squirrel has been following along for a mile, chattering. It seems to want lunch.',
+    options: [
+      {
+        text: 'Share your lunch', tag: 'Wild',
+        success: { line: 'shared their lunch with a squirrel kit. It stayed.', pet: 'squirrel-kit' },
+      },
+      {
+        text: 'Teach it a trick', tag: 'Cunning', chance: 0.7,
+        success: { line: 'taught a squirrel kit to fetch. It fetched itself along.', pet: 'squirrel-kit' },
+        failure: { line: 'taught a squirrel kit a trick. It learned to pick pockets.', gold: -0.5 },
+      },
+      {
+        text: 'Shoo it home', tag: 'Might',
+        success: { line: 'shooed a squirrel kit home. It came back with a nut, as thanks.', xp: 0.5 },
+      },
+    ],
+  },
+  {
+    id: 'runt-lamb', where: 'road', regions: ['hindhill'],
+    title: 'The Runt of the Flock',
+    text: 'A sign on a farm gate reads FREE TO A GOOD HOME. Behind it, a very small lamb looks up hopefully.',
+    options: [
+      {
+        text: 'Give it a good home', tag: 'Faith',
+        success: { line: 'took in the runt of the flock.', pet: 'lamb' },
+      },
+      {
+        text: 'Whistle for it', tag: 'Wild', chance: 0.8,
+        success: { line: 'whistled, and the runt of the flock came running.', pet: 'lamb' },
+        failure: { line: 'whistled for a lamb. The whole flock came. Chaos.', rest: 1 },
+      },
+      {
+        text: 'Buy some wool instead', tag: 'Cunning',
+        success: {
+          line: 'bought a warm wool scarf from the farm instead.', gold: -0.5,
+          blessing: { name: 'Woolly Scarf', effects: { boost: { maxHp: 0.08 } }, seasons: 20 },
+        },
+      },
+    ],
+  },
+  {
+    id: 'fox-kit', where: 'road', regions: ['flank'],
+    title: 'A Fox Kit in a Chest',
+    text: 'A fox kit has made its den in an old treasure chest, and growls at anyone who comes near the coins.',
+    options: [
+      {
+        text: 'Offer it a shiny coin', tag: 'Cunning',
+        success: { line: 'gave a fox kit a shiny coin. It decided to keep them too.', gold: -0.5, pet: 'fox-kit' },
+      },
+      {
+        text: 'Sit very still', tag: 'Wild', chance: 0.7,
+        success: { line: 'sat very still until a fox kit climbed into their lap.', pet: 'fox-kit' },
+        failure: { line: 'sat very still. A fox kit bit their ankle anyway.', hp: -0.05 },
+      },
+      {
+        text: 'Take the coins', tag: 'Might',
+        success: { line: 'took the coins from a fox kit\'s chest. It sulked.', gold: 2 },
+      },
+    ],
+  },
+  {
+    id: 'otter-pup', where: 'road', regions: ['fens'],
+    title: 'The Otter Pup',
+    text: 'An otter pup floats past on its back, holding a pebble. It offers the pebble, very seriously.',
+    options: [
+      {
+        text: 'Accept the pebble', tag: 'Faith',
+        success: { line: 'accepted a pebble from an otter pup, and with it, the otter.', pet: 'otter-pup' },
+      },
+      {
+        text: 'Splash back', tag: 'Wild',
+        success: { line: 'had a splashing contest with an otter pup. Friends for life.', pet: 'otter-pup' },
+      },
+      {
+        text: 'Pocket the pebble', tag: 'Cunning',
+        success: { line: 'pocketed an otter\'s pebble. It was a pearl!', gold: 2 },
+      },
+    ],
+  },
+  {
+    id: 'ledge-kid', where: 'road', regions: ['spine'],
+    title: 'The Kid on the Ledge',
+    text: 'A young mountain goat is stuck on a ledge, bleating. Its herd is nowhere to be seen.',
+    options: [
+      {
+        text: 'Climb up to it', tag: 'Might', chance: 0.7,
+        success: { line: 'climbed up and rescued a mountain kid, who would not leave.', pet: 'mountain-kid' },
+        failure: { line: 'climbed for a stranded goat, and fell. The goat climbed down.', hp: -0.15 },
+      },
+      {
+        text: 'Coax it down', tag: 'Wild',
+        success: { line: 'coaxed a mountain kid off a ledge. It followed them after.', pet: 'mountain-kid' },
+      },
+      {
+        text: 'Rig a rope and pulley', tag: 'Arcane',
+        success: { line: 'lowered a mountain kid with a pulley. It bounded home.', xp: 1 },
+      },
+    ],
+  },
+  {
+    id: 'battlefield-pup', where: 'road', regions: ['claws'],
+    title: 'The Battlefield Pup',
+    text: 'A wolf pup sits alone among old shields, guarding a helmet much bigger than itself.',
+    options: [
+      {
+        text: 'Kneel and hold out a hand', tag: 'Faith',
+        success: { line: 'knelt beside a lonely wolf pup. It came along.', pet: 'wolf-pup' },
+      },
+      {
+        text: 'Share your rations', tag: 'Wild',
+        success: { line: 'shared their rations with a wolf pup. A firm friend.', pet: 'wolf-pup' },
+      },
+      {
+        text: 'Salute it', tag: 'Might',
+        success: { line: 'saluted a very small guard on an old battlefield.', xp: 1 },
+      },
+    ],
+  },
+  {
+    id: 'lantern-owlet', where: 'road', regions: ['smokecrown'],
+    title: 'The Owlet in the Lantern',
+    text: 'An owlet has nested in a cold street lantern. It blinks out with enormous, lonely eyes.',
+    options: [
+      {
+        text: 'Light the lantern for it', tag: 'Arcane',
+        success: { line: 'lit a cold lantern for an owlet, who hopped onto their shoulder.', pet: 'owlet' },
+      },
+      {
+        text: 'Hum it a lullaby', tag: 'Faith',
+        success: { line: 'hummed a lullaby to a lonely owlet. It stayed.', pet: 'owlet' },
+      },
+      {
+        text: 'Leave it be', tag: 'Cunning',
+        success: { line: 'left an owlet to its lantern. It hooted goodbye.', xp: 0.5 },
+      },
+    ],
+  },
+
   // ---- Only for heroes with a particular quirk ----
   {
     id: 'gaggle', where: 'road', quirk: 'afraid-of-geese', weight: 3,
@@ -869,6 +1221,73 @@ export const events = [
     ],
   },
 
+  {
+    id: 'overdue-library', where: 'town',
+    title: 'The Overdue Library',
+    text: 'The town library is closing for good. The librarian is very upset about the overdue books.',
+    options: [
+      {
+        text: 'Read all night', tag: 'Arcane',
+        success: { line: 'read the town library cover to cover in one night.', xp: 2 },
+      },
+      {
+        text: 'Return the overdue books', tag: 'Faith',
+        success: {
+          line: 'returned every overdue library book, and was warmly thanked.',
+          blessing: { name: "Librarian's Blessing", effects: { xp: 0.1 }, seasons: 20 },
+        },
+      },
+      {
+        text: 'Sell a rare edition', tag: 'Cunning', chance: 0.6,
+        success: { line: 'sold a rare book from the closing library. For charity, mostly.', gold: 3 },
+        failure: { line: 'tried to sell a library book. The librarian had a ruler.', hp: -0.1 },
+      },
+    ],
+  },
+  {
+    id: 'busy-smithy', where: 'town',
+    title: 'The Busy Smithy',
+    text: 'The blacksmith has too much work and not enough hands. Sparks fly in every direction.',
+    options: [
+      {
+        text: 'Work the bellows', tag: 'Might',
+        success: { line: 'worked the bellows all day, and was paid in steel.', item: { slot: 'weapon', rarity: 'uncommon' } },
+      },
+      {
+        text: 'Haggle for the good stuff', tag: 'Cunning', chance: 0.5,
+        success: { line: 'haggled a blacksmith down on their finest piece.', item: { rarity: 'rare' } },
+        failure: { line: 'haggled with a blacksmith, and was shown the door.', gold: -1 },
+      },
+      {
+        text: 'Shoe the horses', tag: 'Wild',
+        success: { line: "shod every horse at the smithy. The horses said thank you.", gold: 2 },
+      },
+    ],
+  },
+  {
+    id: 'harvest-dance', where: 'town',
+    title: 'The Harvest Dance',
+    text: 'The whole town is dancing in the square. Someone has already lost a shoe.',
+    options: [
+      {
+        text: 'Dance till dawn', tag: 'Wild',
+        success: {
+          line: 'danced till dawn at the harvest dance, and felt light on their feet.',
+          blessing: { name: 'Light Feet', effects: { boost: { speed: 0.1 } }, seasons: 16 },
+        },
+      },
+      {
+        text: 'Lead the harvest prayer', tag: 'Faith',
+        success: { line: 'led the harvest prayer, and everyone went quiet. Nicely.', xp: 1.5 },
+      },
+      {
+        text: 'Win the tug-of-war', tag: 'Might', chance: 0.6,
+        success: { line: 'won the tug-of-war at the harvest dance. A prize ham!', gold: 2, hp: 0.2 },
+        failure: { line: 'lost the tug-of-war, and landed in the cider.', hp: -0.1 },
+      },
+    ],
+  },
+
   // ---- In dungeons: forks, traps and puzzles (the "strange rooms" of dungeons.js) ----
   {
     id: 'two-passages', where: 'dungeon',
@@ -995,6 +1414,48 @@ export const events = [
       {
         text: 'Find another way', tag: 'Cunning',
         success: { line: 'found a side passage around a collapsing hall.', rest: 1 },
+      },
+    ],
+  },
+
+  {
+    id: 'hall-of-mirrors', where: 'dungeon',
+    title: 'The Hall of Mirrors',
+    text: 'A hall of mirrors. Every reflection is slightly braver, or slightly worse at hair.',
+    options: [
+      {
+        text: 'Find the true reflection', tag: 'Arcane', chance: 0.65,
+        success: { line: 'found the one true reflection, and the way through.', xp: 1.5 },
+        failure: { line: 'got lost in a hall of mirrors, and walked into most of them.', hp: -0.1 },
+      },
+      {
+        text: 'Smash them', tag: 'Might',
+        success: { line: 'smashed a hall of mirrors. Something behind one minded.', fight: { levels: 1 } },
+      },
+      {
+        text: 'Follow the draft', tag: 'Cunning',
+        success: { line: 'followed a cold draft through a hall of mirrors.', xp: 1 },
+      },
+    ],
+  },
+  {
+    id: 'obvious-chest', where: 'dungeon',
+    title: 'A Very Obvious Chest',
+    text: 'A chest sits alone in the middle of the room, under a beam of light. It is very obvious.',
+    options: [
+      {
+        text: 'Check it for traps', tag: 'Cunning',
+        success: { line: 'checked a very obvious chest for traps. Only coins inside.', gold: 2 },
+      },
+      {
+        text: 'Fling it open', tag: 'Might', chance: 0.5,
+        success: { line: 'flung open a very obvious chest. Treasure!', item: { rarity: 'rare' } },
+        failure: { line: 'flung open a very obvious chest. It had teeth.', fight: { levels: 1 } },
+      },
+      {
+        text: 'Sense for magic', tag: 'Arcane', chance: 0.7,
+        success: { line: 'found a hidden drawer in a very obvious chest.', item: 'drop' },
+        failure: { line: 'sensed for magic in a chest. It sensed back.', hp: -0.15 },
       },
     ],
   },

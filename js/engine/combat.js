@@ -48,7 +48,7 @@ export function createMonster(rng, regionId, heroLevel, { kindName, extraLevels 
 // of each castle boss, so {a} is "the Glutton Lord", and a proper name like "Baron Goldtooth" is bare.
 export function monsterWords(monster) {
   const { kind, name } = monster;
-  if (kind.properName) return { a: name, the: name };
+  if (kind.properName || monster.properName) return { a: name, the: name }; // (a nemesis has its own name)
   return { a: kind.boss ? `the ${name}` : withArticle(name), the: `the ${name}` };
 }
 
